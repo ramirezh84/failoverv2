@@ -34,6 +34,7 @@ Do not rely on CI to catch what you can catch locally.
 ## Reporting bugs
 
 Open an issue using the `bug_report` template. Include:
+
 - AWS region(s) involved
 - Step Functions execution ARN if applicable
 - Relevant CloudWatch Logs Insights queries

@@ -20,7 +20,7 @@ build conventions.
 
 ## Layout
 
-```
+```text
 profiles/        # per-app YAML profiles + JSON Schema
 lambdas/         # Python 3.14 Lambdas (handler/logic/aws split)
 lib/             # shared Python code
@@ -37,7 +37,7 @@ tests/           # unit, integration, chaos
 
 Deploys are manual and local. CI runs code-quality checks only.
 
-```sh
+```bash
 export AWS_PROFILE=tbed
 make harness-up        # one-time per session: base + runtime
 make scenario-N        # run a single scenario (1-14)
