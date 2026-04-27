@@ -1,0 +1,46 @@
+{
+  "mcpServers": {
+    "awslabs-core-mcp-server": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "awslabs.core-mcp-server@latest"
+      ],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "ERROR"
+      }
+    },
+    "awslabs-aws-documentation-mcp-server": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "awslabs.aws-documentation-mcp-server@latest"
+      ],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "ERROR",
+        "AWS_DOCUMENTATION_PARTITION": "aws"
+      }
+    },
+    "awslabs-terraform-mcp-server": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "awslabs.terraform-mcp-server@latest"
+      ],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "ERROR"
+      }
+    },
+    "github": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "github_pat_..."
+      }
+    }
+  }
+}
