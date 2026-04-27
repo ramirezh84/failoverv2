@@ -1,0 +1,58 @@
+rules:
+  - id: boto3-client-without-endpoint-url
+    pattern-either:
+      - pattern: boto3.client($SVC)
+      - pattern: boto3.client($SVC, region_name=$R)
+      - pattern: boto3.resource($SVC)
+    message: |
+      boto3.client/resource must be constructed with an explicit endpoint_url
+      pointing at the in-region VPC interface endpoint (CLAUDE.md §3.1).
+      Use lib.aws_clients factories instead.
+    severity: ERROR
+    languages: [python]
+    paths:
+      include:
+        - "lambdas/"
+        - "lib/"
+        - "cli/"
+      exclude:
+        - "**/test_*.py"
+        - "**/conftest.py"
+
+  - id: lambda-time-sleep
+    pattern: time.sleep(...)
+    message: |
+      time.sleep is forbidden in Lambdas. Use Step Functions Wait states for
+      any delay (CLAUDE.md §3.1, §10).
+    severity: ERROR
+    languages: [python]
+    paths:
+      include:
+        - "lambdas/"
+      exclude:
+        - "**/test_*.py"
+
+  - id: lambda-print-debug
+    pattern: print(...)
+    message: |
+      Use the structured logger from lib.structured_logger; never print()
+      from a Lambda (CLAUDE.md §3.1).
+    severity: ERROR
+    languages: [python]
+    paths:
+      include:
+        - "lambdas/"
+        - "lib/"
+      exclude:
+        - "**/test_*.py"
+        - "cli/"
+
+  - id: bare-except
+    pattern: |
+      try:
+        ...
+      except:
+        ...
+    message: No bare except. Catch specific exceptions (CLAUDE.md §3.1).
+    severity: ERROR
+    languages: [python]

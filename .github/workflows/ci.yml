@@ -1,0 +1,243 @@
+name: ci
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.14"
+  TERRAFORM_VERSION: "1.10.5"
+
+jobs:
+  # ------------------------------------------------------------------------
+  # Python
+  # ------------------------------------------------------------------------
+  lint-python:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with: { enable-cache: true }
+      - name: Install Python ${{ env.PYTHON_VERSION }}
+        run: uv python install ${{ env.PYTHON_VERSION }}
+      - name: Sync dev deps
+        run: uv sync --extra dev
+      - name: ruff check
+        run: uv run ruff check .
+      - name: ruff format check
+        run: uv run ruff format --check .
+      - name: mypy strict
+        run: uv run mypy lib lambdas cli
+
+  unit-tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with: { enable-cache: true }
+      - run: uv python install ${{ env.PYTHON_VERSION }}
+      - run: uv sync --extra dev
+      - name: pytest with coverage
+        run: uv run pytest
+      - name: Branch coverage gate (≥70%)
+        run: |
+          uv run python -c "
+          import xml.etree.ElementTree as ET, sys
+          root = ET.parse('coverage.xml').getroot()
+          line_rate = float(root.attrib['line-rate']) * 100
+          branch_rate = float(root.attrib['branch-rate']) * 100
+          print(f'line={line_rate:.2f}% branch={branch_rate:.2f}%')
+          if line_rate < 80.0:
+              sys.exit(f'line coverage {line_rate:.2f}% < 80%')
+          if branch_rate < 70.0:
+              sys.exit(f'branch coverage {branch_rate:.2f}% < 70%')
+          "
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage
+          path: coverage.xml
+          retention-days: 7
+
+  bandit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv python install ${{ env.PYTHON_VERSION }}
+      - run: uv sync --extra dev
+      - name: bandit
+        run: uv run bandit -r lambdas lib cli -ll -ii
+
+  pip-audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv python install ${{ env.PYTHON_VERSION }}
+      - run: uv sync --extra dev
+      - name: pip-audit
+        run: uv run pip-audit --strict --vulnerability-service osv
+
+  semgrep:
+    runs-on: ubuntu-24.04
+    container: returntocorp/semgrep:latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: semgrep with custom rules
+        run: semgrep ci --config p/python --config p/security-audit --config .semgrep/
+
+  # ------------------------------------------------------------------------
+  # Profile schema
+  # ------------------------------------------------------------------------
+  profile-schema-validation:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv python install ${{ env.PYTHON_VERSION }}
+      - run: uv sync --extra dev
+      - name: Validate every profile in profiles/
+        run: uv run python scripts/validate_profiles.py
+      - name: Verify every invalid fixture is rejected
+        run: uv run python scripts/validate_invalid_fixtures.py
+
+  # ------------------------------------------------------------------------
+  # Terraform
+  # ------------------------------------------------------------------------
+  terraform-fmt:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with: { terraform_version: "${{ env.TERRAFORM_VERSION }}" }
+      - run: terraform fmt -check -recursive terraform/
+
+  terraform-validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with: { terraform_version: "${{ env.TERRAFORM_VERSION }}" }
+      - name: Validate every root module (no backend init, no creds)
+        run: bash scripts/terraform_validate_all.sh
+
+  tflint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Skip if no .tf files yet
+        id: any
+        run: |
+          if find terraform -name '*.tf' 2>/dev/null | head -1 | grep -q .; then
+            echo "have=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "have=0" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: terraform-linters/setup-tflint@v4
+        if: steps.any.outputs.have == '1'
+      - if: steps.any.outputs.have == '1'
+        run: tflint --init --config=$(pwd)/.tflint.hcl
+        env: { GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
+      - if: steps.any.outputs.have == '1'
+        run: tflint --recursive --config=$(pwd)/.tflint.hcl --chdir=terraform
+
+  checkov:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Skip if no .tf files yet
+        id: any
+        run: |
+          if find terraform -name '*.tf' 2>/dev/null | head -1 | grep -q .; then
+            echo "have=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "have=0" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: bridgecrewio/checkov-action@v12
+        if: steps.any.outputs.have == '1'
+        with:
+          directory: terraform/
+          framework: terraform
+          soft_fail: false
+          quiet: true
+          output_format: sarif
+          output_file_path: checkov.sarif
+          check: ""
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.any.outputs.have == '1'
+        with: { name: checkov-sarif, path: checkov.sarif, retention-days: 7 }
+
+  # ------------------------------------------------------------------------
+  # Custom safety jobs
+  # ------------------------------------------------------------------------
+  iam-policy-check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv python install ${{ env.PYTHON_VERSION }}
+      - name: Reject IAM Action:* / Resource:* in terraform/
+        run: uv run python scripts/iam_policy_check.py
+
+  vpc-endpoint-check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv python install ${{ env.PYTHON_VERSION }}
+      - name: Every aws_lambda_function must have vpc_config
+        run: uv run python scripts/vpc_endpoint_check.py
+
+  boto3-endpoint-check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Every boto3.client(...) must pass endpoint_url=
+        run: bash scripts/boto3_endpoint_check.sh
+
+  no-sleep-check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: No time.sleep in Lambdas (use Step Functions Wait)
+        run: bash scripts/no_sleep_check.sh
+
+  # ------------------------------------------------------------------------
+  # Secrets / docs
+  # ------------------------------------------------------------------------
+  gitleaks:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: gitleaks/gitleaks-action@v2
+        env: { GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
+
+  markdownlint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+      - run: npm install -g markdownlint-cli@0.42.0
+      - run: markdownlint --config .markdownlint.json 'docs/**/*.md' 'runbooks/**/*.md' '*.md' --ignore CHANGELOG.md
+
+  link-check:
+    runs-on: ubuntu-24.04
+    continue-on-error: true # warn-only per SPEC §11.5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: gaurav-nelson/github-action-markdown-link-check@v1
+        with:
+          use-quiet-mode: "yes"
+          config-file: ".github/markdown-link-check.json"
