@@ -4,20 +4,9 @@
 # in private subnets — vpc-endpoint-check CI job enforces this.
 ###############################################################################
 
-resource "null_resource" "build_payload" {
-  # Re-zip whenever any file under lambdas/ or lib/ changes.
-  triggers = {
-    code_hash = sha256(join("", [
-      for f in setunion(
-        fileset(var.lambda_source_root, "**/*.py"),
-        fileset(var.lib_source_root, "**/*.py"),
-      ) :
-      filesha256(f) if !can(regex("test_|__pycache__", f))
-    ]))
-  }
-}
-
 # Build one zip per Lambda. Each zip contains: lambdas/<name>/* + lib/*
+# archive_file recomputes its hash whenever any source file changes, so a
+# separate null_resource trigger isn't needed.
 data "archive_file" "lambda_zip" {
   for_each    = local.lambda_packages
   type        = "zip"

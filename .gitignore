@@ -70,3 +70,6 @@ docs/diagrams/.render-cache/
 !.env.example
 uv.lock
 .claude/scheduled_tasks.lock
+
+# Terraform build artifacts
+**/.builds/

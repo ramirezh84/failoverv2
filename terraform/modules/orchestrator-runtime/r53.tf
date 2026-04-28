@@ -30,7 +30,7 @@ resource "aws_route53_health_check" "secondary" {
 resource "aws_route53_record" "global_primary" {
   provider       = aws.use1
   zone_id        = var.route53_zone_id
-  name           = var.route53_zone_name
+  name           = "app.${var.route53_zone_name}"
   type           = "CNAME"
   ttl            = 30
   set_identifier = "primary"
@@ -42,7 +42,7 @@ resource "aws_route53_record" "global_primary" {
 resource "aws_route53_record" "global_secondary" {
   provider       = aws.use1
   zone_id        = var.route53_zone_id
-  name           = var.route53_zone_name
+  name           = "app.${var.route53_zone_name}"
   type           = "CNAME"
   ttl            = 30
   set_identifier = "secondary"

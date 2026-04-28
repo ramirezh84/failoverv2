@@ -27,7 +27,7 @@ resource "aws_security_group" "outer_nlb_primary" {
 resource "aws_security_group" "alb_primary" {
   provider    = aws.use1
   name        = "${var.app_name}-alb"
-  description = "ALB ingress on 443 (TLS terminates here; NLB passes through)"
+  description = "ALB ingress on 80"
   vpc_id      = var.vpc_id_primary
   ingress {
     description = "HTTPS from VPC"
@@ -93,7 +93,7 @@ resource "aws_security_group" "outer_nlb_secondary" {
 resource "aws_security_group" "alb_secondary" {
   provider    = aws.use2
   name        = "${var.app_name}-alb"
-  description = "ALB ingress on 443 (TLS terminates here; NLB passes through)"
+  description = "ALB ingress on 80"
   vpc_id      = var.vpc_id_secondary
   ingress {
     description = "HTTPS from VPC"
