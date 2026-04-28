@@ -194,6 +194,12 @@ This is the **Route 53 control pattern**: orchestrator never calls the
 Route 53 API directly. It only changes a CloudWatch metric. R53 reacts on
 its own. See [`docs/diagrams/08-r53-control-pattern.md`](diagrams/08-r53-control-pattern.md).
 
+> **Want the gate-by-gate scenario walkthrough?** See
+> [`docs/diagrams/15-detection-logic-walkthrough.md`](diagrams/15-detection-logic-walkthrough.md)
+> — annotates each gate with the specific incident types it filters out,
+> plus a verdict matrix mapping all 14 SPEC scenarios to their stop-gate
+> and final outcome.
+
 ---
 
 ## 5. Action — what failover looks like end-to-end
