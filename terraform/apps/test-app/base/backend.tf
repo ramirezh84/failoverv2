@@ -6,7 +6,7 @@
 # bootstrap script under scripts/terraform_bootstrap.sh.
 terraform {
   backend "s3" {
-    bucket         = "failoverv2-tfstate-PLACEHOLDER"
+    bucket         = "failoverv2-tfstate-255025578193"
     key            = "apps/test-app/base/terraform.tfstate"
     region         = "us-east-1"
     encrypt        = true

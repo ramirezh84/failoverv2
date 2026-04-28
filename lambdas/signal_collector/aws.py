@@ -89,10 +89,12 @@ def aws_health_open_events(region: str) -> list[str]:
 
     from botocore.exceptions import (  # noqa: PLC0415
         ClientError,
-        ConnectionError as BotoConnectionError,
         ConnectTimeoutError,
         EndpointConnectionError,
         ReadTimeoutError,
+    )
+    from botocore.exceptions import (  # noqa: PLC0415
+        ConnectionError as BotoConnectionError,
     )
 
     log = logging.getLogger(__name__)

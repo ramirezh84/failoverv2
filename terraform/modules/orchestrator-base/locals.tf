@@ -39,13 +39,13 @@ locals {
     "monitoring", # CloudWatch metrics
     "logs",       # CloudWatch Logs
     "rds",
-    "states",     # Step Functions
+    "states", # Step Functions
     "synthetics",
-    "events",     # EventBridge
+    "events", # EventBridge
     "lambda",
     "sts",
     "secretsmanager",
-    "health",     # AWS Health — signal_collector.aws_health_open_events()
+    "health", # AWS Health — signal_collector.aws_health_open_events()
     # calls describe_events every minute. Without this VPCE the Lambda hangs
     # at 30s timeout on every invocation in a no-internet-egress VPC.
   ]

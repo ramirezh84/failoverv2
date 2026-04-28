@@ -51,8 +51,18 @@ with Diagram(
             lambdas
             >> Edge(label="HTTPS")
             >> [
-                vpce_ssm, vpce_sns, vpce_cw, vpce_logs, vpce_rds, vpce_states,
-                vpce_synth, vpce_events, vpce_lambda, vpce_sts, vpce_sm, vpce_health,
+                vpce_ssm,
+                vpce_sns,
+                vpce_cw,
+                vpce_logs,
+                vpce_rds,
+                vpce_states,
+                vpce_synth,
+                vpce_events,
+                vpce_lambda,
+                vpce_sts,
+                vpce_sm,
+                vpce_health,
             ]
         )
         lambdas >> vpce_s3
