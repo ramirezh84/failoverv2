@@ -27,12 +27,12 @@ resource "aws_security_group" "outer_nlb_primary" {
 resource "aws_security_group" "alb_primary" {
   provider    = aws.use1
   name        = "${var.app_name}-alb"
-  description = "ALB ingress on 80"
+  description = "ALB ingress on 443 (TLS terminates here; NLB passes through)"
   vpc_id      = var.vpc_id_primary
   ingress {
-    description = "HTTP from VPC"
-    from_port   = 80
-    to_port     = 80
+    description = "HTTPS from VPC"
+    from_port   = 443
+    to_port     = 443
     protocol    = "tcp"
     cidr_blocks = ["10.0.0.0/8"]
   }
@@ -93,12 +93,12 @@ resource "aws_security_group" "outer_nlb_secondary" {
 resource "aws_security_group" "alb_secondary" {
   provider    = aws.use2
   name        = "${var.app_name}-alb"
-  description = "ALB ingress on 80"
+  description = "ALB ingress on 443 (TLS terminates here; NLB passes through)"
   vpc_id      = var.vpc_id_secondary
   ingress {
-    description = "HTTP from VPC"
-    from_port   = 80
-    to_port     = 80
+    description = "HTTPS from VPC"
+    from_port   = 443
+    to_port     = 443
     protocol    = "tcp"
     cidr_blocks = ["10.0.0.0/8"]
   }

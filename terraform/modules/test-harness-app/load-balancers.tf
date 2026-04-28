@@ -1,8 +1,11 @@
 ###############################################################################
-# Outer NLB (TLS, internet-facing) → ALB → ECS.
-# We omit the API Gateway + inner NLB for the POC test harness baseline; these
-# can be added per-app via profile.network.api_gw_id_*. The orchestrator
-# behavior under test does not depend on the inner-NLB hop being present.
+# Outer NLB (TCP passthrough) → ALB (TLS termination) → ECS.
+#
+# AWS constraint: an NLB listener forwarding to an ALB target group must use
+# TCP/UDP/TCP_UDP — TLS termination at the NLB is incompatible with
+# target-type = alb. We therefore move TLS termination to the ALB. The
+# external client still sees a self-signed-CA HTTPS endpoint at port 443;
+# the bytes pass through the NLB unchanged and the ALB terminates.
 ###############################################################################
 
 # ---- Primary region ----
@@ -19,14 +22,14 @@ resource "aws_lb" "outer_primary" {
 resource "aws_lb_target_group" "outer_to_alb_primary" {
   provider    = aws.use1
   name        = "${var.app_name}-outer-tg-use1"
-  port        = 80
+  port        = 443
   protocol    = "TCP"
   target_type = "alb"
   vpc_id      = var.vpc_id_primary
   health_check {
-    protocol            = "HTTP"
+    protocol            = "HTTPS"
     path                = "/health"
-    port                = "80"
+    port                = "443"
     matcher             = "200-399"
     healthy_threshold   = 2
     unhealthy_threshold = 2
@@ -36,18 +39,16 @@ resource "aws_lb_target_group" "outer_to_alb_primary" {
   tags = merge(local.common_tags_use1, { component = "tg-outer" })
 }
 
-resource "aws_lb_listener" "outer_primary_tls" {
+resource "aws_lb_listener" "outer_primary_tcp" {
   provider          = aws.use1
   load_balancer_arn = aws_lb.outer_primary.arn
   port              = 443
-  protocol          = "TLS"
-  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
-  certificate_arn   = var.acm_certificate_arn_primary
+  protocol          = "TCP"
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.outer_to_alb_primary.arn
   }
-  tags = merge(local.common_tags_use1, { component = "listener-tls" })
+  tags = merge(local.common_tags_use1, { component = "listener-tcp" })
 }
 
 resource "aws_lb" "alb_primary" {
@@ -68,7 +69,7 @@ resource "aws_lb_target_group" "alb_primary" {
   target_type = "ip"
   vpc_id      = var.vpc_id_primary
   health_check {
-    path                = "/health"
+    path                = "/"
     matcher             = "200-399"
     healthy_threshold   = 2
     unhealthy_threshold = 2
@@ -81,8 +82,10 @@ resource "aws_lb_target_group" "alb_primary" {
 resource "aws_lb_listener" "alb_primary" {
   provider          = aws.use1
   load_balancer_arn = aws_lb.alb_primary.arn
-  port              = 80
-  protocol          = "HTTP"
+  port              = 443
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+  certificate_arn   = var.acm_certificate_arn_primary
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.alb_primary.arn
@@ -93,7 +96,7 @@ resource "aws_lb_target_group_attachment" "outer_to_alb_primary" {
   provider         = aws.use1
   target_group_arn = aws_lb_target_group.outer_to_alb_primary.arn
   target_id        = aws_lb.alb_primary.arn
-  port             = 80
+  port             = 443
   depends_on       = [aws_lb_listener.alb_primary]
 }
 
@@ -111,14 +114,14 @@ resource "aws_lb" "outer_secondary" {
 resource "aws_lb_target_group" "outer_to_alb_secondary" {
   provider    = aws.use2
   name        = "${var.app_name}-outer-tg-use2"
-  port        = 80
+  port        = 443
   protocol    = "TCP"
   target_type = "alb"
   vpc_id      = var.vpc_id_secondary
   health_check {
-    protocol            = "HTTP"
+    protocol            = "HTTPS"
     path                = "/health"
-    port                = "80"
+    port                = "443"
     matcher             = "200-399"
     healthy_threshold   = 2
     unhealthy_threshold = 2
@@ -128,18 +131,16 @@ resource "aws_lb_target_group" "outer_to_alb_secondary" {
   tags = merge(local.common_tags_use2, { component = "tg-outer" })
 }
 
-resource "aws_lb_listener" "outer_secondary_tls" {
+resource "aws_lb_listener" "outer_secondary_tcp" {
   provider          = aws.use2
   load_balancer_arn = aws_lb.outer_secondary.arn
   port              = 443
-  protocol          = "TLS"
-  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
-  certificate_arn   = var.acm_certificate_arn_secondary
+  protocol          = "TCP"
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.outer_to_alb_secondary.arn
   }
-  tags = merge(local.common_tags_use2, { component = "listener-tls" })
+  tags = merge(local.common_tags_use2, { component = "listener-tcp" })
 }
 
 resource "aws_lb" "alb_secondary" {
@@ -160,7 +161,7 @@ resource "aws_lb_target_group" "alb_secondary" {
   target_type = "ip"
   vpc_id      = var.vpc_id_secondary
   health_check {
-    path                = "/health"
+    path                = "/"
     matcher             = "200-399"
     healthy_threshold   = 2
     unhealthy_threshold = 2
@@ -173,8 +174,10 @@ resource "aws_lb_target_group" "alb_secondary" {
 resource "aws_lb_listener" "alb_secondary" {
   provider          = aws.use2
   load_balancer_arn = aws_lb.alb_secondary.arn
-  port              = 80
-  protocol          = "HTTP"
+  port              = 443
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+  certificate_arn   = var.acm_certificate_arn_secondary
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.alb_secondary.arn
@@ -185,7 +188,7 @@ resource "aws_lb_target_group_attachment" "outer_to_alb_secondary" {
   provider         = aws.use2
   target_group_arn = aws_lb_target_group.outer_to_alb_secondary.arn
   target_id        = aws_lb.alb_secondary.arn
-  port             = 80
+  port             = 443
   depends_on       = [aws_lb_listener.alb_secondary]
 }
 

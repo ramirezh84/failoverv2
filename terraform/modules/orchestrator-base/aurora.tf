@@ -146,6 +146,7 @@ resource "aws_rds_cluster" "secondary" {
   db_subnet_group_name                = aws_db_subnet_group.aurora_secondary.name
   vpc_security_group_ids              = [aws_security_group.aurora_secondary.id]
   storage_encrypted                   = true
+  kms_key_id                          = aws_kms_key.audit_secondary.arn
   iam_database_authentication_enabled = true
   deletion_protection                 = true
   apply_immediately                   = true
