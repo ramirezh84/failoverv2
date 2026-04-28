@@ -6,7 +6,7 @@ applications on AWS. Fails an application over from `us-east-1` to `us-east-2`
 that moving traffic is safer than staying put.
 
 This is the POC build, deployed to a personal AWS account via the `tbed` CLI
-profile. The eventual production target is JPMC; the POC is a 100% topology
+profile. The eventual production target is XXX; the POC is a 100% topology
 mirror with concessions only around credentials and process. See
 [`SPEC.md`](SPEC.md) for the full design and [`CLAUDE.md`](CLAUDE.md) for
 build conventions.
