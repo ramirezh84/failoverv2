@@ -447,17 +447,17 @@ For **each of the 10 functions**, in **each region**:
 6. **Advanced settings → VPC:** select the VPC, all 3 private subnets, the Lambda SG
 7. Create
 
-After creation:
+After creation, do these in order:
 
-8. **Code → Upload from .zip → upload `builds/<fn>.zip`**
-9. **Code → Runtime settings → Edit → Handler:** `lambdas.<fn>.handler.lambda_handler`
+1. **Code → Upload from .zip → upload `builds/<fn>.zip`**
+2. **Code → Runtime settings → Edit → Handler:** `lambdas.<fn>.handler.lambda_handler`
    (Note: dotted path, NOT slashes. e.g. `lambdas.signal_collector.handler.lambda_handler`)
-10. **Configuration → General configuration → Edit:**
+3. **Configuration → General configuration → Edit:**
     - Memory: 256 MB
     - Timeout: 30 seconds (60 seconds for `executor_aurora_confirm`)
     - **Active tracing:** disable (the syn-python-selenium 10.0 runtime doesn't support it; the orchestrator Lambdas don't need it for POC)
-11. **Configuration → Layers → Add a layer → Custom layers → `<APP>-deps`**
-12. **Configuration → Environment variables → Edit:** add these 11 variables (substitute your values; the endpoint URLs come from the VPC endpoint Console — Endpoint → Details tab → "DNS names" → use the **regional** entry, NOT the AZ-specific ones):
+4. **Configuration → Layers → Add a layer → Custom layers → `<APP>-deps`**
+5. **Configuration → Environment variables → Edit:** add the variables in the table below. The endpoint URLs come from the VPC endpoint Console — Endpoint → Details tab → "DNS names" → use the **regional** entry, NOT the AZ-specific ones.
 
 | Key | Value |
 |---|---|
