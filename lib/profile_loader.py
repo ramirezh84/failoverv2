@@ -12,6 +12,7 @@ dicts. Pydantic v2 is used.
 from __future__ import annotations
 
 import json
+import os
 from functools import lru_cache
 from pathlib import Path
 from typing import Annotated, Any, Literal
@@ -218,6 +219,44 @@ def load_from_s3(bucket: str, key: str) -> Profile:
     return parse(body.decode("utf-8"))
 
 
+def load_from_env(env_var: str = "PROFILE_YAML") -> Profile:
+    """Read and parse a profile from a Lambda env var containing the YAML text.
+
+    Tradeoffs vs ``load_from_s3``:
+    - Bound by the Lambda env var budget (4 KB total across all env vars).
+    - Profile changes require a Lambda config update (vs S3 upload + tick).
+    - No CRR — update each region's Lambda directly (Terraform handles it).
+    - More visible — readable by anyone with lambda:GetFunctionConfiguration
+      (S3 + KMS gives you a tighter blast radius).
+    Use when the env doesn't permit a runtime S3 dependency on every Lambda
+    invocation (e.g. air-gapped accounts, S3 read-quota concerns, or
+    operator preference to bake the profile into deployment artifacts).
+    """
+    yaml_text = os.environ.get(env_var, "")
+    if not yaml_text:
+        raise ValueError(f"{env_var} not set or empty; cannot load profile from env.")
+    return parse(yaml_text)
+
+
+def load_profile() -> Profile:
+    """Convenience: prefer env-var profile if set, else fall back to S3.
+
+    Env-var mode (``PROFILE_YAML`` set): no runtime S3 dependency. Faster cold
+    start, no IAM/network surface to S3.
+    S3 mode (``PROFILE_BUCKET`` + ``PROFILE_KEY`` set): the legacy default.
+    """
+    if os.environ.get("PROFILE_YAML"):
+        return load_from_env()
+    bucket = os.environ.get("PROFILE_BUCKET")
+    key = os.environ.get("PROFILE_KEY")
+    if not bucket or not key:
+        raise ValueError(
+            "Profile source not configured. Set either PROFILE_YAML (inline) "
+            "or PROFILE_BUCKET + PROFILE_KEY (S3)."
+        )
+    return load_from_s3(bucket, key)
+
+
 __all__ = [
     "Aurora",
     "Canary",
@@ -232,7 +271,9 @@ __all__ = [
     "Profile",
     "Signals",
     "Slo",
+    "load_from_env",
     "load_from_path",
     "load_from_s3",
+    "load_profile",
     "parse",
 ]

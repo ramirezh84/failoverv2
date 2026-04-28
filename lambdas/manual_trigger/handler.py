@@ -20,7 +20,7 @@ from botocore.exceptions import ClientError
 
 from lambdas.manual_trigger.aws import start_failover_execution
 from lambdas.manual_trigger.logic import build_execution_input
-from lib.profile_loader import load_from_s3
+from lib.profile_loader import load_profile
 from lib.structured_logger import get_logger
 
 log = get_logger(__name__)
@@ -28,9 +28,6 @@ log = get_logger(__name__)
 
 def lambda_handler(event: dict[str, Any], context: object) -> dict[str, Any]:
     del context
-    app_name = os.environ["APP_NAME"]
-    profile_bucket = os.environ["PROFILE_BUCKET"]
-    profile_key = os.environ.get("PROFILE_KEY", f"{app_name}/profile.yaml")
     failover_arn = os.environ["FAILOVER_STATE_MACHINE_ARN"]
     failback_arn = os.environ["FAILBACK_STATE_MACHINE_ARN"]
 
@@ -42,7 +39,7 @@ def lambda_handler(event: dict[str, Any], context: object) -> dict[str, Any]:
     if direction not in {"failover", "failback", "dryrun"}:
         raise ValueError(f"direction must be failover|failback|dryrun, got {direction!r}")
 
-    profile = load_from_s3(profile_bucket, profile_key)
+    profile = load_profile()
     payload = build_execution_input(
         profile=profile,
         direction=direction,  # type: ignore[arg-type]

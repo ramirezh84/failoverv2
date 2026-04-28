@@ -139,6 +139,7 @@ resource "aws_lambda_function" "primary" {
   environment {
     variables = merge(
       local.endpoint_env_primary,
+      var.profile_yaml_inline != "" ? { PROFILE_YAML = var.profile_yaml_inline } : {},
       {
         APP_NAME                   = var.app_name
         PROFILE_BUCKET             = var.profile_bucket_primary
@@ -180,6 +181,7 @@ resource "aws_lambda_function" "secondary" {
   environment {
     variables = merge(
       local.endpoint_env_secondary,
+      var.profile_yaml_inline != "" ? { PROFILE_YAML = var.profile_yaml_inline } : {},
       {
         APP_NAME                   = var.app_name
         PROFILE_BUCKET             = var.profile_bucket_secondary

@@ -18,6 +18,11 @@ module "orchestrator_runtime" {
   lib_source_root    = "${path.module}/../../../../lib"
   statemachines_root = "${path.module}/../../../../statemachines"
 
+  # Profile delivery: when profile_yaml_path is set, bake the YAML into every
+  # Lambda's PROFILE_YAML env var. When empty (default), Lambdas read the
+  # profile from S3 (legacy mode). See docs/profile-delivery-modes.md.
+  profile_yaml_inline = var.profile_yaml_path != "" ? file(var.profile_yaml_path) : ""
+
   # Use the AZ-filtered Lambda subnets, not the full private set: AWS Health
   # VPCE only supports a subset of AZs, and a Lambda placed in an unsupported
   # AZ silently times out at 30s on every Health call.
