@@ -156,6 +156,14 @@ resource "aws_rds_cluster" "secondary" {
   tags                                = merge(local.common_tags_use2, { component = "aurora-cluster" })
 
   depends_on = [aws_rds_cluster_instance.primary_writer]
+
+  # Once attached to the global cluster, AWS rejects any apply that would
+  # re-add it ("existing RDS Clusters cannot be added to an existing RDS
+  # Global Cluster"). Ignore drift on this attribute so terraform doesn't
+  # keep retrying the no-op modify.
+  lifecycle {
+    ignore_changes = [global_cluster_identifier]
+  }
 }
 
 resource "aws_rds_cluster_instance" "secondary_reader" {

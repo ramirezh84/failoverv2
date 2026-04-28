@@ -53,7 +53,7 @@ no useful error.
 ### 1.1 Required endpoints — checklist
 
 In **each region** (`PRIMARY_REGION` and `SECONDARY_REGION`), verify these
-**11 interface endpoints** exist and are attached to your private subnets:
+**12 interface endpoints** exist and are attached to your private subnets:
 
 | # | Service name (suffix) | Used by |
 |---|---|---|
@@ -68,6 +68,7 @@ In **each region** (`PRIMARY_REGION` and `SECONDARY_REGION`), verify these
 | 9 | `lambda` | (reserved; SFN service integration uses STS not this) |
 | 10 | `sts` | All Lambdas (boto3 credential resolution + cross-account roles in JPMC port) |
 | 11 | `secretsmanager` | (reserved for future cert-rotation; safe to skip if you're certain you'll never use Secrets Manager) |
+| 12 | `health` | signal_collector → `aws_health_open_events` every minute. Without this VPCE the Lambda hangs at 30s on every invocation. **AZ caveat:** the Health VPCE is only available in a subset of AZs per region (e.g. us-east-1: 1b/1c/1d only — NOT 1a). When creating, the console will reject AZs the service doesn't support. **Lambda subnets must intersect with Health-supported AZs** or signal_collector lands in an unreachable AZ. **Support tier caveat:** AWS Health `DescribeEvents` requires Business or Enterprise Support; on Basic Support the call returns `SubscriptionRequiredException`. The Lambda handles this gracefully (logs a warning, returns no events) so the rest of signal collection still works. |
 
 Plus **1 gateway endpoint**:
 
@@ -477,7 +478,7 @@ After creation, do these in order:
 | `ENDPOINT_RDS` | `https://vpce-XXXX.rds.<region>.vpce.amazonaws.com` |
 | `ENDPOINT_STEPFUNCTIONS` | `https://vpce-XXXX.states.<region>.vpce.amazonaws.com` |
 | `ENDPOINT_SYNTHETICS` | `https://vpce-XXXX.synthetics.<region>.vpce.amazonaws.com` |
-| `ENDPOINT_HEALTH` | `https://health.us-east-1.amazonaws.com` (Health is global; uses us-east-1 endpoint always) |
+| `ENDPOINT_HEALTH` | `https://vpce-XXXX.health.<region>.vpce.amazonaws.com` (the regional Health VPCE — DO NOT use the public `health.us-east-1.amazonaws.com` URL; that hangs from a no-internet-egress Lambda) |
 | `ENDPOINT_EVENTS` | `https://vpce-XXXX.events.<region>.vpce.amazonaws.com` |
 | `ENDPOINT_LAMBDA` | `https://vpce-XXXX.lambda.<region>.vpce.amazonaws.com` |
 
