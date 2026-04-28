@@ -139,6 +139,14 @@ For **each region** (do this in the region's KMS console):
 
 ### 2.2 S3 buckets — profile + audit (per region)
 
+> **Optional alternative to S3 for profile:** the orchestrator supports
+> reading the profile from a Lambda env var (`PROFILE_YAML`) instead of S3.
+> If your environment forbids runtime S3 reads from Lambda, see
+> [`profile-delivery-modes.md`](profile-delivery-modes.md) — you can skip
+> the **profile** bucket below (audit bucket is still required). The
+> rest of this guide assumes S3 mode for the profile; substitute the
+> env-var step where noted in Phase 4.3.
+
 For **each region**, create two buckets:
 
 **Profile bucket:** `<APP_NAME>-profiles-<ACCOUNT_ID>-use1` (and `-use2`)
@@ -479,6 +487,7 @@ After creation, do these in order:
 | `ENDPOINT_STEPFUNCTIONS` | `https://vpce-XXXX.states.<region>.vpce.amazonaws.com` |
 | `ENDPOINT_SYNTHETICS` | `https://vpce-XXXX.synthetics.<region>.vpce.amazonaws.com` |
 | `ENDPOINT_HEALTH` | `https://vpce-XXXX.health.<region>.vpce.amazonaws.com` (the regional Health VPCE — DO NOT use the public `health.us-east-1.amazonaws.com` URL; that hangs from a no-internet-egress Lambda) |
+| `PROFILE_YAML` *(optional)* | The full YAML text of your app's profile — only set this if you're using **env-var profile mode** instead of S3 (see [`profile-delivery-modes.md`](profile-delivery-modes.md)). When set, Lambdas prefer it over `PROFILE_BUCKET`/`PROFILE_KEY`. 4 KB total env-var budget. |
 | `ENDPOINT_EVENTS` | `https://vpce-XXXX.events.<region>.vpce.amazonaws.com` |
 | `ENDPOINT_LAMBDA` | `https://vpce-XXXX.lambda.<region>.vpce.amazonaws.com` |
 

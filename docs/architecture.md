@@ -41,7 +41,9 @@ cross-region channel. Coordination is via:
   `/failover/{app}/{region}/{decision,role,in_flight}` parameters.
 - **S3 with CRR** for the profile bucket and audit bucket. CRR carries
   the latest profile from primary to secondary so the secondary's Decision
-  Engine reads the same configuration even when primary is down.
+  Engine reads the same configuration even when primary is down. (Profile
+  delivery is pluggable: see [`profile-delivery-modes.md`](profile-delivery-modes.md)
+  for the env-var alternative when runtime S3 reads aren't acceptable.)
 - **SNS account-level topics** in each region with cross-region subscribers
   for operator alerting.
 - **CloudWatch metrics** as the R53 control surface. `Failover/{app}/PrimaryHealthControl`
