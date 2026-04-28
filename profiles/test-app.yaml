@@ -1,0 +1,81 @@
+# Test harness app profile — used by tests/chaos/ and the test-app Terraform stack.
+# This is the synthetic ECS Fargate app deployed by terraform/modules/test-harness-app
+# that exercises the full topology end-to-end. SPEC §2.1 POC-F.
+
+app_name: test-app
+pattern: active_passive
+primary_region: us-east-1
+secondary_region: us-east-2
+
+components:
+  api_gateway: true
+  aurora: true
+  elasticache: false
+  kafka_consumer: true
+
+network:
+  # Filled by terraform output during make harness-up; placeholder ARNs for schema validation.
+  outer_nlb_arn_primary: arn:aws:elasticloadbalancing:us-east-1:000000000000:loadbalancer/net/test-app-outer-use1/0000000000000000
+  outer_nlb_arn_secondary: arn:aws:elasticloadbalancing:us-east-2:000000000000:loadbalancer/net/test-app-outer-use2/0000000000000000
+  alb_arn_primary: arn:aws:elasticloadbalancing:us-east-1:000000000000:loadbalancer/app/test-app-alb-use1/0000000000000000
+  alb_arn_secondary: arn:aws:elasticloadbalancing:us-east-2:000000000000:loadbalancer/app/test-app-alb-use2/0000000000000000
+  api_gw_id_primary: abcd1234ef
+  api_gw_id_secondary: ghij5678kl
+  routable_url_primary: https://test-app.us-east-1.failover.internal/health
+  routable_url_secondary: https://test-app.us-east-2.failover.internal/health
+
+dns:
+  global_record_name: test-app.failover.internal
+  hosted_zone_id: Z00000000000000000000
+
+aurora:
+  cluster_id_primary: test-app-use1
+  cluster_id_secondary: test-app-use2
+  global_cluster_id: test-app-global
+  writer_policy: pin_primary
+  manual_approval_required: true
+  aurora_confirm_timeout_minutes: 30
+  dns_first_failover: true
+
+elasticache: null
+
+kafka:
+  consumer_group: test-app-consumer
+  gate_on_indicator: true
+
+signals:
+  tier1_quorum: 2
+  dwell_minutes: 5
+  hysteresis_minutes: 3
+  canary_failure_rate_pct: 80
+
+canary:
+  ignore_tls_errors: true
+  internal_ca_bundle_s3_uri: null
+
+failover:
+  auto_failover: false
+  auto_failback: false
+  drain_seconds: 60
+  quiesce_seconds: 60
+  r53_propagation_seconds: 90
+  stable_minutes_before_failback: 30
+
+slo:
+  rto_minutes: 15
+  rpo_minutes: 5
+
+notifications:
+  sns_topic_arn_primary: arn:aws:sns:us-east-1:000000000000:failover-events
+  sns_topic_arn_secondary: arn:aws:sns:us-east-2:000000000000:failover-events
+  events:
+    - failover_authorized
+    - failover_initiated
+    - failover_step_completed
+    - failover_completed
+    - failover_failed
+    - failback_initiated
+    - failback_completed
+    - failback_failed
+    - signal_red
+    - signal_recovered

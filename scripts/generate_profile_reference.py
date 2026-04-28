@@ -67,12 +67,10 @@ def main() -> int:
         print("_Schema not yet committed; PR #2 will fill this in._")
         return 0
     schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
-    out: list[str] = [HEADER.rstrip()]
-    out.append("\n## Top-level fields\n")
+    out: list[str] = [HEADER.rstrip(), "", "## Top-level fields", ""]
     required = set(schema.get("required", []))
     for name, prop in schema.get("properties", {}).items():
         out.extend(_emit_property(name, prop, name in required))
-    out.append("")
     print("\n".join(out))
     return 0
 

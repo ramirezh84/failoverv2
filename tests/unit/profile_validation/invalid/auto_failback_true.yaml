@@ -1,0 +1,27 @@
+# Reject: auto_failback must be false (CLAUDE.md §2 hard constraint #9).
+app_name: bad-app
+pattern: active_passive
+primary_region: us-east-1
+secondary_region: us-east-2
+components: { api_gateway: false, aurora: false, elasticache: false, kafka_consumer: false }
+network:
+  outer_nlb_arn_primary: arn:aws:elasticloadbalancing:us-east-1:000000000000:loadbalancer/net/x/0
+  outer_nlb_arn_secondary: arn:aws:elasticloadbalancing:us-east-2:000000000000:loadbalancer/net/x/0
+  alb_arn_primary: arn:aws:elasticloadbalancing:us-east-1:000000000000:loadbalancer/app/x/0
+  alb_arn_secondary: arn:aws:elasticloadbalancing:us-east-2:000000000000:loadbalancer/app/x/0
+  routable_url_primary: https://x.example/health
+  routable_url_secondary: https://x.example/health
+  api_gw_id_primary: null
+  api_gw_id_secondary: null
+dns: { global_record_name: x.example, hosted_zone_id: Z00 }
+aurora: null
+elasticache: null
+kafka: { consumer_group: x, gate_on_indicator: false }
+signals: { tier1_quorum: 2, dwell_minutes: 5, hysteresis_minutes: 3, canary_failure_rate_pct: 80 }
+canary: { ignore_tls_errors: true, internal_ca_bundle_s3_uri: null }
+failover: { auto_failover: false, auto_failback: true, drain_seconds: 60, quiesce_seconds: 60, r53_propagation_seconds: 90, stable_minutes_before_failback: 30 }
+slo: { rto_minutes: 15, rpo_minutes: 5 }
+notifications:
+  sns_topic_arn_primary: arn:aws:sns:us-east-1:000000000000:topic
+  sns_topic_arn_secondary: arn:aws:sns:us-east-2:000000000000:topic
+  events: [failover_authorized]
