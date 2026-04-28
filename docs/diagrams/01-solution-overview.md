@@ -4,7 +4,7 @@
 
 ```mermaid
 flowchart LR
-  subgraph US-EAST-1 [us-east-1 (active)]
+  subgraph US-EAST-1 [us-east-1 active]
     direction TB
     SC1[Signal Collector]
     DE1[Decision Engine]
@@ -17,7 +17,7 @@ flowchart LR
     DE1 --> SNS1[SNS account topic]
     DE1 --> CWAlarm1[PrimaryHealthControl alarm]
   end
-  subgraph US-EAST-2 [us-east-2 (passive)]
+  subgraph US-EAST-2 [us-east-2 passive]
     direction TB
     SC2[Signal Collector]
     DE2[Decision Engine]

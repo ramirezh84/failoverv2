@@ -4,11 +4,11 @@
 
 ```mermaid
 flowchart TD
-  Start[Decision Engine tick] --> Quorum{count(Tier1 red)<br/>>= tier1_quorum?}
+  Start[Decision Engine tick] --> Quorum{count(Tier1 red)<br/>&ge; tier1_quorum?}
   Quorum -- no --> StateGreen[state=GREEN<br/>or WATCHING]
-  Quorum -- yes --> Dwell{red continuous<br/>>= dwell_minutes?}
+  Quorum -- yes --> Dwell{red continuous<br/>&ge; dwell_minutes?}
   Dwell -- no --> StateWatching[state=WATCHING<br/>reason=dwell_not_held]
-  Dwell -- yes --> Hyst{time_since_last<br/>>= hysteresis?}
+  Dwell -- yes --> Hyst{time_since_last<br/>&ge; hysteresis?}
   Hyst -- no --> StateWatching2[state=WATCHING<br/>reason=hysteresis_blocked]
   Hyst -- yes --> Auto{auto_failover==true?}
   Auto -- no --> AlertOnly[FAILOVER_AUTHORIZED_BUT_NOT_AUTO<br/>SNS HIGH only]

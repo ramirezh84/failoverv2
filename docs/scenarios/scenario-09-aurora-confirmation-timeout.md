@@ -51,23 +51,23 @@ System stays in known-stuck rather than rolling back DNS to a degraded primary.
 
 ```mermaid
 sequenceDiagram
-  participant Test as Test driver
-  participant SC as Signal Collector
-  participant DE as Decision Engine
-  participant SF as Step Functions
+  participant Test
+  participant SC as SignalCollector
+  participant DE as DecisionEngine
+  participant SF as StepFunctions
   participant Operator
-  participant Sec as Secondary region
+  participant Sec
 
   Test->>SC: inject scenario condition
-  SC->>DE: signal red (via CW)
-  DE->>DE: evaluate §4.2
+  SC->>DE: signal red via CW
+  DE->>DE: evaluate rule
   alt scenario triggers
     DE->>SF: start failover
     SF->>Operator: SNS aurora_gate_paused
     Operator->>SF: SendTaskSuccess
-    SF->>Sec: PROMOTE_SECONDARY_INDICATOR ACTIVE
+    SF->>Sec: PROMOTE secondary ACTIVE
   else scenario does NOT trigger
-    DE->>DE: state=GREEN/WATCHING
+    DE->>DE: state GREEN or WATCHING
   end
 ```
 

@@ -12,7 +12,7 @@ and `us-east-2`.
 
 ```mermaid
 flowchart LR
-  subgraph Region [Region (us-east-1 OR us-east-2)]
+  subgraph Region [Region us-east-1 OR us-east-2]
     direction LR
     EB[EventBridge\n1-min schedule] --> SC[Signal Collector\nLambda]
     EB --> DE[Decision Engine\nLambda]
