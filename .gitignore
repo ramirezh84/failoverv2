@@ -69,3 +69,4 @@ docs/diagrams/.render-cache/
 .env.*
 !.env.example
 uv.lock
+.claude/scheduled_tasks.lock
