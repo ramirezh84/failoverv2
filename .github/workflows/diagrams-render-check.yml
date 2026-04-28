@@ -20,7 +20,7 @@ jobs:
   render-check:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v7
       - run: uv python install ${{ env.PYTHON_VERSION }}
       - run: uv sync --extra dev

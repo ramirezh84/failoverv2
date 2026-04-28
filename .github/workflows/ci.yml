@@ -24,7 +24,7 @@ jobs:
   lint-python:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v7
         with: { enable-cache: true }
       - name: Install Python ${{ env.PYTHON_VERSION }}
@@ -41,7 +41,7 @@ jobs:
   unit-tests:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v7
         with: { enable-cache: true }
       - run: uv python install ${{ env.PYTHON_VERSION }}
@@ -71,7 +71,7 @@ jobs:
   bandit:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v7
       - run: uv python install ${{ env.PYTHON_VERSION }}
       - run: uv sync --extra dev
@@ -81,7 +81,7 @@ jobs:
   pip-audit:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v7
       - run: uv python install ${{ env.PYTHON_VERSION }}
       - run: uv sync --extra dev
@@ -92,7 +92,7 @@ jobs:
     runs-on: ubuntu-24.04
     container: returntocorp/semgrep:latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: semgrep with custom rules
         run: semgrep ci --config p/python --config p/security-audit --config .semgrep/
 
@@ -102,7 +102,7 @@ jobs:
   profile-schema-validation:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v7
       - run: uv python install ${{ env.PYTHON_VERSION }}
       - run: uv sync --extra dev
@@ -117,7 +117,7 @@ jobs:
   terraform-fmt:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: hashicorp/setup-terraform@v4
         with: { terraform_version: "${{ env.TERRAFORM_VERSION }}" }
       - run: terraform fmt -check -recursive terraform/
@@ -125,7 +125,7 @@ jobs:
   terraform-validate:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: hashicorp/setup-terraform@v4
         with: { terraform_version: "${{ env.TERRAFORM_VERSION }}" }
       - name: Validate every root module (no backend init, no creds)
@@ -134,7 +134,7 @@ jobs:
   tflint:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Skip if no .tf files yet
         id: any
         run: |
@@ -154,7 +154,7 @@ jobs:
   checkov:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Skip if no .tf files yet
         id: any
         run: |
@@ -180,7 +180,7 @@ jobs:
   iam-policy-check:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v7
       - run: uv python install ${{ env.PYTHON_VERSION }}
       - name: Reject IAM Action:* / Resource:* in terraform/
@@ -189,7 +189,7 @@ jobs:
   vpc-endpoint-check:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v7
       - run: uv python install ${{ env.PYTHON_VERSION }}
       - name: Every aws_lambda_function must have vpc_config
@@ -198,14 +198,14 @@ jobs:
   boto3-endpoint-check:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Every boto3.client(...) must pass endpoint_url=
         run: bash scripts/boto3_endpoint_check.sh
 
   no-sleep-check:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: No time.sleep in Lambdas (use Step Functions Wait)
         run: bash scripts/no_sleep_check.sh
 
@@ -217,7 +217,7 @@ jobs:
     # gitleaks-action requires a paid license for private repos; we run the
     # gitleaks binary directly instead, which is free and equivalent.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with: { fetch-depth: 0 }
       - name: Install gitleaks
         run: |
@@ -229,7 +229,7 @@ jobs:
   markdownlint:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-node@v4
         with: { node-version: "20" }
       - run: npm install -g markdownlint-cli@0.42.0
@@ -240,7 +240,7 @@ jobs:
   link-check:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: lycheeverse/lychee-action@v2
         continue-on-error: true
         with:
