@@ -56,35 +56,26 @@ resource "aws_lambda_layer_version" "deps_secondary" {
   compatible_architectures = ["x86_64"]
 }
 
-# Build one zip per Lambda. Each zip contains: lambdas/<name>/* + lib/*
-# archive_file recomputes its hash whenever any source file changes, so a
-# separate null_resource trigger isn't needed.
+# Build one zip per Lambda. Each zip contains every Lambda's source under
+# lambdas/* + lib/* + profile schema. Bundling all lambdas keeps cross-module
+# imports working (e.g., executor_postcheck → executor_precheck.logic).
+locals {
+  all_lambda_files = toset([
+    for p in fileset(var.lambda_source_root, "*/*.py") : p
+    if !startswith(basename(p), "test_")
+  ])
+}
+
 data "archive_file" "lambda_zip" {
   for_each    = local.lambda_packages
   type        = "zip"
   output_path = "${path.module}/.builds/${each.key}.zip"
 
-  source {
-    content  = file("${each.value}/handler.py")
-    filename = "lambdas/${each.key}/handler.py"
-  }
-  source {
-    content  = file("${each.value}/__init__.py")
-    filename = "lambdas/${each.key}/__init__.py"
-  }
-  # logic.py + aws.py optional per Lambda
   dynamic "source" {
-    for_each = fileexists("${each.value}/logic.py") ? [1] : []
+    for_each = local.all_lambda_files
     content {
-      content  = file("${each.value}/logic.py")
-      filename = "lambdas/${each.key}/logic.py"
-    }
-  }
-  dynamic "source" {
-    for_each = fileexists("${each.value}/aws.py") ? [1] : []
-    content {
-      content  = file("${each.value}/aws.py")
-      filename = "lambdas/${each.key}/aws.py"
+      content  = file("${var.lambda_source_root}/${source.value}")
+      filename = "lambdas/${source.value}"
     }
   }
   source {

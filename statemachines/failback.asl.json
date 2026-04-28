@@ -40,16 +40,20 @@
     },
     "DRAIN_SECONDARY_INDICATOR": {
       "Type": "Task",
-      "Resource": "${indicator_updater_lambda_arn}",
+      "Resource": "arn:aws:states:::aws-sdk:lambda:invoke",
       "Parameters": {
-        "app_name.$": "$.app_name",
-        "region.$": "$.source_region",
-        "role": "DRAINING",
-        "executor_run_id.$": "$.failover_id",
-        "sequence": 1,
-        "dry_run.$": "$.dry_run"
+        "FunctionName": "${indicator_updater_source_lambda_arn}",
+        "Payload": {
+          "app_name.$": "$.app_name",
+          "region.$": "$.source_region",
+          "role": "DRAINING",
+          "executor_run_id.$": "$.failover_id",
+          "sequence": 1,
+          "dry_run.$": "$.dry_run"
+        }
       },
       "ResultPath": "$.drain_secondary",
+      "ResultSelector": {"Payload.$": "$.Payload"},
       "Retry": [{"ErrorEquals": ["States.ALL"], "IntervalSeconds": 2, "MaxAttempts": 3, "BackoffRate": 2.0}],
       "Catch": [{"ErrorEquals": ["States.ALL"], "Next": "FAIL", "ResultPath": "$.error"}],
       "Next": "WAIT_DRAIN"
@@ -85,16 +89,20 @@
     },
     "PROMOTE_PRIMARY_INDICATOR": {
       "Type": "Task",
-      "Resource": "${indicator_updater_lambda_arn}",
+      "Resource": "arn:aws:states:::aws-sdk:lambda:invoke",
       "Parameters": {
-        "app_name.$": "$.app_name",
-        "region.$": "$.target_region",
-        "role": "ACTIVE",
-        "executor_run_id.$": "$.failover_id",
-        "sequence": 2,
-        "dry_run.$": "$.dry_run"
+        "FunctionName": "${indicator_updater_target_lambda_arn}",
+        "Payload": {
+          "app_name.$": "$.app_name",
+          "region.$": "$.target_region",
+          "role": "ACTIVE",
+          "executor_run_id.$": "$.failover_id",
+          "sequence": 2,
+          "dry_run.$": "$.dry_run"
+        }
       },
       "ResultPath": "$.promote_primary",
+      "ResultSelector": {"Payload.$": "$.Payload"},
       "Retry": [{"ErrorEquals": ["States.ALL"], "IntervalSeconds": 2, "MaxAttempts": 3, "BackoffRate": 2.0}],
       "Catch": [{"ErrorEquals": ["States.ALL"], "Next": "FAIL", "ResultPath": "$.error"}],
       "Next": "AURORA_GATE_DECISION"
@@ -170,6 +178,26 @@
       "ResultPath": "$.postcheck",
       "Retry": [{"ErrorEquals": ["States.ALL"], "IntervalSeconds": 2, "MaxAttempts": 3, "BackoffRate": 2.0}],
       "Catch": [{"ErrorEquals": ["States.ALL"], "Next": "FAIL", "ResultPath": "$.error"}],
+      "Next": "DEMOTE_SOURCE_INDICATOR"
+    },
+    "DEMOTE_SOURCE_INDICATOR": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${indicator_updater_source_lambda_arn}",
+        "Payload": {
+          "app_name.$": "$.app_name",
+          "region.$": "$.source_region",
+          "role": "PASSIVE",
+          "executor_run_id.$": "$.failover_id",
+          "sequence": 4,
+          "dry_run.$": "$.dry_run"
+        }
+      },
+      "ResultPath": "$.demote_source",
+      "ResultSelector": {"Payload.$": "$.Payload"},
+      "Retry": [{"ErrorEquals": ["States.ALL"], "IntervalSeconds": 2, "MaxAttempts": 3, "BackoffRate": 2.0}],
+      "Catch": [{"ErrorEquals": ["States.ALL"], "Next": "FAIL", "ResultPath": "$.error"}],
       "Next": "NOTIFY_COMPLETED"
     },
     "NOTIFY_COMPLETED": {
@@ -185,7 +213,6 @@
         "topic_arn": "${sns_topic_arn}",
         "detail": {
           "target_region.$": "$.target_region",
-          "writer_region.$": "$.aurora.writer_region",
           "operator.$": "$.operator"
         }
       },

@@ -260,9 +260,13 @@ resource "aws_iam_role" "sfn_primary" {
 
 data "aws_iam_policy_document" "sfn_primary" {
   statement {
-    sid       = "invokeOrchestratorLambdas"
-    actions   = ["lambda:InvokeFunction"]
-    resources = [for k, _ in local.lambda_packages : aws_lambda_function.primary[k].arn]
+    sid     = "invokeOrchestratorLambdas"
+    actions = ["lambda:InvokeFunction"]
+    # Cross-region invokes for indicator_updater on the opposite region.
+    resources = concat(
+      [for k, _ in local.lambda_packages : aws_lambda_function.primary[k].arn],
+      [for k, _ in local.lambda_packages : aws_lambda_function.secondary[k].arn],
+    )
   }
   statement {
     sid       = "publishToSnsForTaskToken"
@@ -301,9 +305,13 @@ resource "aws_iam_role" "sfn_secondary" {
 
 data "aws_iam_policy_document" "sfn_secondary" {
   statement {
-    sid       = "invokeOrchestratorLambdas"
-    actions   = ["lambda:InvokeFunction"]
-    resources = [for k, _ in local.lambda_packages : aws_lambda_function.secondary[k].arn]
+    sid     = "invokeOrchestratorLambdas"
+    actions = ["lambda:InvokeFunction"]
+    # Cross-region invokes for indicator_updater on the opposite region.
+    resources = concat(
+      [for k, _ in local.lambda_packages : aws_lambda_function.primary[k].arn],
+      [for k, _ in local.lambda_packages : aws_lambda_function.secondary[k].arn],
+    )
   }
   statement {
     sid       = "publishToSnsForTaskToken"
