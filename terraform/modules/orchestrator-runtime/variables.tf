@@ -29,13 +29,17 @@ variable "statemachines_root" {
 }
 
 variable "vpc_id_primary" {
-  description = "VPC id from orchestrator-base outputs (primary)."
+  description = "VPC id (primary). Currently unused inside the module — accepted so the test-app stack can pass it without breaking; reserved for future security-group attachments."
   type        = string
+  default     = ""
+  nullable    = true
 }
 
 variable "vpc_id_secondary" {
-  description = "VPC id from orchestrator-base outputs (secondary)."
+  description = "VPC id (secondary). Same status as vpc_id_primary."
   type        = string
+  default     = ""
+  nullable    = true
 }
 
 variable "private_subnet_ids_primary" {

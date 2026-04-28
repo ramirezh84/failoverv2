@@ -7,4 +7,5 @@ locals {
   common_tags_use2 = merge(local.common_tags, { region = var.secondary_region })
 }
 
-data "aws_caller_identity" "current" {}
+# aws_caller_identity not currently consumed; left out to satisfy
+# tflint terraform_unused_declarations.
