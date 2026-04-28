@@ -38,9 +38,7 @@ def test_scenario_13() -> None:
                 state.get("status") == "SUCCEEDED",
                 f"status={state.get('status')}",
             ),
-            "primary_role_passive": lambda: fw.assert_indicator_role(
-                fw.PRIMARY_REGION, "PASSIVE"
-            ),
+            "primary_role_passive": lambda: fw.assert_indicator_role(fw.PRIMARY_REGION, "PASSIVE"),
             "secondary_role_active": lambda: fw.assert_indicator_role(
                 fw.SECONDARY_REGION, "ACTIVE"
             ),

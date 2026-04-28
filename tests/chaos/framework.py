@@ -327,9 +327,7 @@ def patch_profile(overrides: dict[str, Any]) -> bytes:
         return dst
 
     deep_merge(profile, overrides)
-    s3.put_object(
-        Bucket=bucket, Key=key, Body=yaml.safe_dump(profile, sort_keys=False).encode()
-    )
+    s3.put_object(Bucket=bucket, Key=key, Body=yaml.safe_dump(profile, sort_keys=False).encode())
     return original
 
 

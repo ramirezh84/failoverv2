@@ -98,8 +98,7 @@ def test_scenario_12() -> None:
                 f"same_input={state['same_input']} first={state['first']}",
             ),
             "diff_input_rejected_as_duplicate": lambda: (
-                not state["diff_input"][0]
-                and state["diff_input"][1] == "ExecutionAlreadyExists",
+                not state["diff_input"][0] and state["diff_input"][1] == "ExecutionAlreadyExists",
                 f"diff_input={state['diff_input']}",
             ),
         }
