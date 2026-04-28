@@ -18,8 +18,6 @@ module "orchestrator_runtime" {
   lib_source_root    = "${path.module}/../../../../lib"
   statemachines_root = "${path.module}/../../../../statemachines"
 
-  vpc_id_primary                     = data.terraform_remote_state.base.outputs.vpc_id_primary
-  vpc_id_secondary                   = data.terraform_remote_state.base.outputs.vpc_id_secondary
   private_subnet_ids_primary         = data.terraform_remote_state.base.outputs.private_subnet_ids_primary
   private_subnet_ids_secondary       = data.terraform_remote_state.base.outputs.private_subnet_ids_secondary
   lambda_security_group_id_primary   = data.terraform_remote_state.base.outputs.lambda_security_group_id_primary
