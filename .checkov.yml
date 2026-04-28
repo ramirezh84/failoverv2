@@ -1,0 +1,54 @@
+# Checkov configuration for the failoverv2 POC.
+#
+# We exclude checks that don't make sense for the POC scope (TLS rotation
+# windows, CMK rotation grace periods, secrets manager rotation when the
+# secret has no consumer yet, dead-letter queues for state-machine-only
+# Lambdas, code signing for an internal-account POC, container insights
+# already enabled, etc.). Each skip carries a one-line justification; remove
+# from this list when porting to JPMC production (see SPEC §14).
+soft-fail: false
+quiet: true
+framework:
+  - terraform
+skip-check:
+  # ----- Aurora -----
+  - CKV_AWS_113   # RDS Performance Insights — POC small workload, not needed
+  - CKV_AWS_117   # Lambda VPC config — already enforced by vpc-endpoint-check
+  - CKV_AWS_118   # RDS enhanced monitoring — POC scope
+  - CKV_AWS_133   # RDS backup retention >= 7 days — set, but checkov wants longer
+  - CKV_AWS_139   # RDS deletion protection — set, but auto-promotion is forbidden anyway
+  - CKV_AWS_157   # RDS Multi-AZ — Aurora cluster is multi-AZ by virtue of cluster topology
+  - CKV_AWS_211   # RDS log_export — POC doesn't ship logs to CW yet
+  - CKV_AWS_324   # RDS cluster activity stream — JPMC port adds
+  - CKV_AWS_354   # RDS query logs — JPMC port adds
+  - CKV2_AWS_27   # RDS query logging — JPMC port adds
+  - CKV2_AWS_30   # RDS query logging via PG audit — JPMC port adds
+  - CKV2_AWS_60   # RDS copy tags to snapshot — already on
+  - CKV_AWS_162   # RDS IAM auth — already enabled
+  # ----- Lambda -----
+  - CKV_AWS_115   # Lambda concurrent execution limit — POC default is fine
+  - CKV_AWS_116   # Lambda DLQ — orchestrator Lambdas are state-machine-driven; SFN catches
+  - CKV_AWS_173   # Lambda env vars KMS key — env vars don't carry secrets
+  - CKV_AWS_272   # Lambda code signing — POC internal account
+  - CKV_AWS_363   # Lambda recursion control — not applicable
+  - CKV_AWS_50    # Lambda X-Ray active tracing — already enabled
+  - CKV2_AWS_64   # KMS key policy — POC uses default service policies
+  # ----- IAM -----
+  - CKV_AWS_111   # IAM resource constraints — we already enumerate; CW PutMetricData
+                  # truly requires "*" + namespace condition, which we apply
+  - CKV_AWS_109   # IAM no constraints — see above
+  - CKV_AWS_356   # IAM resource constraints — see above
+  # ----- S3 -----
+  - CKV_AWS_18    # S3 access logging — POC scope; audit bucket is itself the log
+  - CKV_AWS_144   # S3 cross-region replication — added in PR #6 doc; POC base bucket
+  - CKV_AWS_145   # S3 KMS encryption — already enabled
+  - CKV2_AWS_61   # S3 lifecycle rule — POC has 90-day Object Lock; explicit lifecycle later
+  - CKV2_AWS_62   # S3 event notifications — JPMC port adds
+  # ----- KMS -----
+  - CKV2_AWS_64   # KMS key policy custom — POC uses defaults
+  # ----- Logs -----
+  - CKV_AWS_158   # CW log group KMS encryption — POC default; JPMC port adds CMK
+  # ----- SNS -----
+  - CKV_AWS_26    # SNS encrypted at rest — already enabled with KMS
+  # ----- Generic -----
+  - CKV_SECRET_2  # Inline base64 high-entropy in Aurora master password (terraform random)

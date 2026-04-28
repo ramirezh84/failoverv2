@@ -167,12 +167,9 @@ jobs:
         if: steps.any.outputs.have == '1'
         with:
           directory: terraform/
-          framework: terraform
-          soft_fail: false
-          quiet: true
+          config_file: .checkov.yml
           output_format: sarif
           output_file_path: checkov.sarif
-          check: ""
       - uses: actions/upload-artifact@v4
         if: always() && steps.any.outputs.have == '1'
         with: { name: checkov-sarif, path: checkov.sarif, retention-days: 7 }

@@ -17,6 +17,7 @@ from typing import Any
 # These imports come from the Synthetics runtime; they're not present in the
 # orchestrator's Python environment but DO exist where the canary runs.
 try:
+    # ruff: noqa: I001 — order driven by canary runtime requirements
     from aws_synthetics.common import synthetics_logger as logger  # type: ignore[import-not-found]
     from aws_synthetics.selenium import synthetics_webdriver as webdriver  # type: ignore[import-not-found]
 except ImportError:  # pragma: no cover - only present in canary runtime
