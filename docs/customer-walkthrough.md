@@ -124,8 +124,8 @@ Three tiers, by purpose:
 | `api_gw_5xx` | API Gateway 5xx error rate |
 
 The split exists because Tier 3 (`alb_unhealthy`, `api_gw_5xx`) goes red on
-routine deployment blips. Tier 1 (NLB + cross-region canary + AWS Health
-+ VPC endpoints) only goes red when the **infrastructure** is genuinely
+routine deployment blips. Tier 1 (NLB, cross-region canary, AWS Health,
+VPC endpoints) only goes red when the **infrastructure** is genuinely
 degraded.
 
 ### 3.3 Indicator publishing
