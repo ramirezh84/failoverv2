@@ -176,6 +176,11 @@ exclude_lines = [
     "if TYPE_CHECKING:",
 ]
 
+[dependency-groups]
+dev = [
+    "pytest-xdist>=3.8.0",
+]
+
 # Branch coverage gate is enforced by --cov-fail-under above (line). We
 # additionally enforce branch via the `partial_branches` mechanism in CI by
 # parsing coverage.xml. See .github/workflows/ci.yml job `unit-tests`.

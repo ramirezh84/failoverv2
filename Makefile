@@ -79,17 +79,17 @@ upload-profile: ## Upload profiles/$(APP).yaml to the base layer's profile bucke
 .PHONY: scenarios-all stable-suite scenarios-parallel scenarios-sequential
 scenarios-all: scenarios-parallel scenarios-sequential ## Parallel batch then sequential batch; consolidated report.
 
-scenarios-parallel: ## Non-mutating scenarios (1, 2, 3, 5, 13, 14) in parallel.
+scenarios-parallel: ## Non-mutating scenarios (1, 2, 3, 5, 6, 14) in parallel.
 	@mkdir -p $(RESULTS_DIR)
 	$(UV) run pytest tests/chaos/test_scenario_01_deployment_503_blip.py \
 	                 tests/chaos/test_scenario_02_alb_unhealthy_only.py \
 	                 tests/chaos/test_scenario_03_single_az_outage.py \
 	                 tests/chaos/test_scenario_05_api_gw_5xx_storm.py \
-	                 tests/chaos/test_scenario_13_profile_change_mid_incident.py \
+	                 tests/chaos/test_scenario_06_app_cant_reach_aurora.py \
 	                 tests/chaos/test_scenario_14_canary_self_failure.py \
-	                 -m chaos -n auto
+	                 -m chaos -n auto --no-cov
 
-scenarios-sequential: ## Mutating scenarios (4, 7, 8, 9, 10, 11, 12) sequential.
+scenarios-sequential: ## Mutating scenarios (4, 7, 8, 9, 10, 11, 12, 13) sequential.
 	@mkdir -p $(RESULTS_DIR)
 	$(UV) run pytest tests/chaos/test_scenario_04_full_region_outage.py \
 	                 tests/chaos/test_scenario_07_dry_run.py \
@@ -98,7 +98,8 @@ scenarios-sequential: ## Mutating scenarios (4, 7, 8, 9, 10, 11, 12) sequential.
 	                 tests/chaos/test_scenario_10_failback.py \
 	                 tests/chaos/test_scenario_11_mid_failover_lambda_crash.py \
 	                 tests/chaos/test_scenario_12_split_brain_attempt.py \
-	                 -m chaos
+	                 tests/chaos/test_scenario_13_profile_change_mid_incident.py \
+	                 -m chaos --no-cov
 
 stable-suite: ## Run scenarios-all THREE consecutive times; pass only if every run is clean.
 	for i in 1 2 3; do \
