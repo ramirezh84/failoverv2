@@ -365,8 +365,76 @@ There is **no** API Gateway, web UI, or chat-bot front door in the POC.
 JPMC port adds these as a separate concern — they're operator-experience
 sugar, not part of the safety boundary.
 
+### Notifications (SNS)
+
+Every event is published to a single account-level SNS topic with a
+human-friendly subject and body, plus the structured payload for
+programmatic consumers.
+
+**Subject format:**
+
+```
+[<SEVERITY>] <Title>: <app> (<context>)
+```
+
+Examples:
+
+- `[CRITICAL] Failover started: payments (us-east-1 → us-east-2)`
+- `[CRITICAL] OPERATOR ACTION REQUIRED: Approve Aurora promotion (payments → us-east-2)`
+- `[INFO] Failover COMPLETED: payments (us-east-1 → us-east-2)`
+- `[DRY-RUN] Failover started: payments (us-east-1 → us-east-2)`
+
+**Body format:**
+
+```
+FAILOVER STARTED
+
+App:        payments
+Severity:   CRITICAL
+Event:      failover_initiated
+Source:     us-east-1
+Target:     us-east-2
+Operator:   sre@org.com
+Failover ID: failover-payments-20260428-failover-000-7cc2696d
+
+Next steps:
+  1. Confirm the failover is intentional — if not, run
+     `failoverctl abort --execution-id <id>` immediately.
+  2. Stand by for the AURORA APPROVAL REQUIRED notification
+     (if Aurora is in scope for this app).
+
+--- raw event payload (JSON) ---
+{
+  "app_name": "payments",
+  "event": "failover_initiated",
+  ...
+}
+```
+
+The text summary is what email/SMS/Slack subscribers see first. The JSON
+after the `--- raw event payload ---` separator is for Lambda/SQS
+subscribers that need structured data — split on the separator and
+`json.loads` the second half.
+
+**Subscription policies** filter on the SNS message attributes:
+`app_name`, `event`, `severity`, `dry_run`. So an SRE on-call subscription
+can match `severity ∈ {CRITICAL, HIGH}`, while an audit-log subscription
+matches everything.
+
 For the day-to-day operator's view, see [`docs/operations.md`](operations.md)
 and the runbooks in [`runbooks/`](../runbooks/).
+
+### Profile delivery
+
+The profile YAML is delivered to Lambdas one of two ways:
+
+- **S3 mode (default):** Lambdas read `s3://<app>-profiles-<account>-<region>/<app>/profile.yaml`
+  on every invocation. Profile updates: upload to primary bucket → CRR replicates → next minute tick picks it up.
+- **Env-var mode (opt-in):** Lambdas read the YAML from a `PROFILE_YAML`
+  environment variable. No runtime S3 dependency; profile changes flow
+  through `terraform apply` and are visible in the IaC plan diff.
+
+Tradeoffs and switching guide: [`profile-delivery-modes.md`](profile-delivery-modes.md).
 
 ---
 

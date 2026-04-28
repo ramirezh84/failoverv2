@@ -126,15 +126,8 @@
       "Resource": "arn:aws:states:::sns:publish.waitForTaskToken",
       "Parameters": {
         "TopicArn": "${sns_topic_arn}",
-        "Subject.$": "States.Format('AURORA APPROVAL REQUIRED (failback) — {}/{}', $.app_name, $.failover_id)",
-        "Message": {
-          "event": "aurora_gate_paused",
-          "app_name.$": "$.app_name",
-          "failover_id.$": "$.failover_id",
-          "target_region.$": "$.target_region",
-          "task_token.$": "$$.Task.Token",
-          "instructions": "Promote Aurora primary cluster to writer; then run failoverctl approve --execution-id <id> to resume."
-        },
+        "Subject.$": "States.Format('[CRITICAL] OPERATOR ACTION REQUIRED: Approve Aurora promotion (failback, {} target {})', $.app_name, $.target_region)",
+        "Message.$": "States.Format('[CRITICAL] OPERATOR ACTION REQUIRED — Approve Aurora promotion (FAILBACK)\n\nApp:         {}\nFailover ID: {}\nTarget:      {}\n\nWhat you must do:\n  1. In the RDS console, promote the Aurora cluster in {} to writer (Failover Global Database).\n  2. Verify the writer is in {}.\n  3. Resume the failback:\n       failoverctl approve --execution-id {}\n     OR to roll back:\n       failoverctl abort --execution-id {}\n\nUntil you act, the failback state machine is paused at AURORA_GATE_PAUSE. It times out after aurora_confirm_timeout_minutes (default 30) and the failback is marked FAILED.\n\n--- callback metadata (programmatic consumers) ---\nevent: aurora_gate_paused\ntask_token: {}', $.app_name, $.failover_id, $.target_region, $.target_region, $.target_region, $.failover_id, $.failover_id, $$.Task.Token)",
         "MessageAttributes": {
           "app_name": {"DataType": "String", "StringValue.$": "$.app_name"},
           "event": {"DataType": "String", "StringValue": "aurora_gate_paused"},
