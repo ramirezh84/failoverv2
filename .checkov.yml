@@ -52,3 +52,4 @@ skip-check:
   - CKV_AWS_26    # SNS encrypted at rest — already enabled with KMS
   # ----- Generic -----
   - CKV_SECRET_2  # Inline base64 high-entropy in Aurora master password (terraform random)
+# trigger CI
