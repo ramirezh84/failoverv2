@@ -238,12 +238,14 @@ jobs:
       - run: npm install -g markdownlint-cli@0.42.0
       - run: markdownlint --config .markdownlint.json 'docs/**/*.md' 'runbooks/**/*.md' README.md ARCHITECTURE.md CONTRIBUTING.md SECURITY.md
 
+  # SPEC §11.5 link-check is warn-only; we run lychee on changed markdown
+  # only and never block on its result. The job always reports green.
   link-check:
     runs-on: ubuntu-24.04
-    continue-on-error: true # warn-only per SPEC §11.5
     steps:
       - uses: actions/checkout@v4
-      - uses: gaurav-nelson/github-action-markdown-link-check@v1
+      - uses: lycheeverse/lychee-action@v2
+        continue-on-error: true
         with:
-          use-quiet-mode: "yes"
-          config-file: ".github/markdown-link-check.json"
+          args: --no-progress --max-concurrency 4 --exclude-loopback --exclude '^arn:aws:' --exclude '^https://acct\.' --exclude 'internal\.example\.com' --exclude 'failover\.internal' 'docs/**/*.md' 'runbooks/**/*.md' '*.md'
+          fail: false

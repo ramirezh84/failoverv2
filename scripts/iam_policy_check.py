@@ -40,7 +40,9 @@ def main() -> int:
         for f in findings:
             print(f"  {f}")
         return 1
-    print(f"OK: scanned {sum(1 for _ in TERRAFORM_DIR.rglob('*.tf'))} terraform files; no wildcards.")
+    print(
+        f"OK: scanned {sum(1 for _ in TERRAFORM_DIR.rglob('*.tf'))} terraform files; no wildcards."
+    )
     return 0
 
 

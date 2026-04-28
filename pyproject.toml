@@ -127,7 +127,7 @@ ignore_missing_imports = true
 # ----------------------------------------------------------------------------
 [tool.pytest.ini_options]
 minversion = "8.0"
-testpaths = ["tests", "lib", "lambdas"]
+testpaths = ["tests", "lib", "lambdas", "cli"]
 python_files = ["test_*.py", "*_test.py"]
 addopts = [
     "-ra",
