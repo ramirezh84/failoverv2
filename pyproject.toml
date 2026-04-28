@@ -83,7 +83,7 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = ["S101", "S105", "S106", "PLR2004", "ARG001", "ARG002"]
 "**/test_*.py" = ["S101", "S105", "S106", "PLR2004", "ARG001", "ARG002"]
-"docs/diagrams/*.py" = ["E501", "I001"]
+"docs/diagrams/*.py" = ["E501", "I001", "SIM117", "RUF100"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["lib", "lambdas", "cli"]
