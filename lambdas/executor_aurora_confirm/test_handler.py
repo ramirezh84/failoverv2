@@ -2,12 +2,11 @@ from __future__ import annotations
 
 import pytest
 
+from lambdas.executor_aurora_confirm import handler
 from lambdas.executor_aurora_confirm.handler import lambda_handler
 
 
 def test_handler_advances_when_writer_in_target(monkeypatch: pytest.MonkeyPatch) -> None:
-    from lambdas.executor_aurora_confirm import handler
-
     monkeypatch.setattr(handler, "aurora_writer_in", lambda _: "us-east-2")
     monkeypatch.setattr(handler, "aurora_replica_lag_seconds", lambda _: 0.5)
     out = lambda_handler(
@@ -25,8 +24,6 @@ def test_handler_advances_when_writer_in_target(monkeypatch: pytest.MonkeyPatch)
 
 
 def test_handler_loops_when_writer_still_primary(monkeypatch: pytest.MonkeyPatch) -> None:
-    from lambdas.executor_aurora_confirm import handler
-
     monkeypatch.setattr(handler, "aurora_writer_in", lambda _: "us-east-1")
     monkeypatch.setattr(handler, "aurora_replica_lag_seconds", lambda _: 0.5)
     out = lambda_handler(
