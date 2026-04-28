@@ -148,12 +148,28 @@ def synthetics() -> SyntheticsClient:
 
 @cache
 def health() -> HealthClient:
-    # AWS Health API only exists in us-east-1 (control plane).
+    # AWS Health Dashboard supports regional VPC interface endpoints since
+    # 2022. Each region's Lambda uses its OWN region's Health endpoint —
+    # callers pass `regions=[<target>]` filter when querying. Hardcoding
+    # us-east-1 here from a us-east-2 Lambda would require cross-region
+    # egress that doesn't exist (CLAUDE.md §11 #1).
+    #
+    # Health-specific config: 1 retry max, 5s read timeout. The Health API
+    # is the only signal source whose failure modes (Basic Support →
+    # SubscriptionRequiredException, control-plane outage during a real
+    # incident) we expect to hit, and we don't want to burn the Lambda's
+    # 30s budget retrying it.
+    health_config = Config(
+        retries={"max_attempts": 1, "mode": "standard"},
+        connect_timeout=3,
+        read_timeout=5,
+        user_agent_extra="failoverv2/0.1.0",
+    )
     return boto3.client(
         "health",
-        region_name="us-east-1",
+        region_name=_region(),
         endpoint_url=_endpoint("ENDPOINT_HEALTH"),
-        config=_DEFAULT_CONFIG,
+        config=health_config,
     )
 
 

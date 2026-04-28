@@ -72,11 +72,56 @@ def _canary_name_for_url(routable_url: str) -> str:
 
 
 def aws_health_open_events(region: str) -> list[str]:
-    """List open AWS Health event ARNs that affect ``region``."""
-    resp = aws_clients.health().describe_events(
-        filter={"regions": [region], "eventStatusCodes": ["open"]},
+    """List open AWS Health event ARNs that affect ``region``.
+
+    Fails open on common error modes:
+    - SubscriptionRequiredException: account is on Basic Support; the Health
+      API is only available with Business/Enterprise. Operators should either
+      upgrade support OR remove `aws_health_open` from the profile's Tier 1
+      signals to silence this warning.
+    - Endpoint timeout / connection error: VPCE missing or misrouted; Lambda
+      should not block signal collection on this single Tier 1 source.
+
+    Returns an empty list on any of these failures so the Decision Engine
+    isn't blocked and quorum still works on the other Tier 1 signals.
+    """
+    import logging  # noqa: PLC0415
+
+    from botocore.exceptions import (  # noqa: PLC0415
+        ClientError,
+        ConnectTimeoutError,
+        EndpointConnectionError,
+        ReadTimeoutError,
     )
-    return [e["arn"] for e in resp.get("events", [])]
+    from botocore.exceptions import (  # noqa: PLC0415
+        ConnectionError as BotoConnectionError,
+    )
+
+    log = logging.getLogger(__name__)
+    try:
+        resp = aws_clients.health().describe_events(
+            filter={"regions": [region], "eventStatusCodes": ["open"]},
+        )
+        return [e["arn"] for e in resp.get("events", [])]
+    except ClientError as exc:
+        code = exc.response.get("Error", {}).get("Code", "")
+        if code == "SubscriptionRequiredException":
+            log.warning(
+                "aws_health_subscription_required region=%s — account needs "
+                "Business/Enterprise Support to use AWS Health API; treating "
+                "as no events.",
+                region,
+            )
+            return []
+        raise
+    except (
+        EndpointConnectionError,
+        ReadTimeoutError,
+        ConnectTimeoutError,
+        BotoConnectionError,
+    ) as exc:
+        log.warning("aws_health_endpoint_unreachable region=%s err=%s", region, exc)
+        return []
 
 
 def vpc_endpoint_errors(region: str) -> int:

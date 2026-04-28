@@ -14,6 +14,14 @@ output "private_subnet_ids_secondary" {
   description = "Pass-through: orchestrator-base.private_subnet_ids_secondary."
   value       = module.orchestrator_base.private_subnet_ids_secondary
 }
+output "lambda_subnet_ids_primary" {
+  description = "Pass-through: subnets safe for orchestrator Lambdas (VPCE-AZ filtered)."
+  value       = module.orchestrator_base.lambda_subnet_ids_primary
+}
+output "lambda_subnet_ids_secondary" {
+  description = "Pass-through: subnets safe for orchestrator Lambdas (VPCE-AZ filtered)."
+  value       = module.orchestrator_base.lambda_subnet_ids_secondary
+}
 output "lambda_security_group_id_primary" {
   description = "Pass-through."
   value       = module.orchestrator_base.lambda_security_group_id_primary

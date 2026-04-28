@@ -18,8 +18,11 @@ module "orchestrator_runtime" {
   lib_source_root    = "${path.module}/../../../../lib"
   statemachines_root = "${path.module}/../../../../statemachines"
 
-  private_subnet_ids_primary         = data.terraform_remote_state.base.outputs.private_subnet_ids_primary
-  private_subnet_ids_secondary       = data.terraform_remote_state.base.outputs.private_subnet_ids_secondary
+  # Use the AZ-filtered Lambda subnets, not the full private set: AWS Health
+  # VPCE only supports a subset of AZs, and a Lambda placed in an unsupported
+  # AZ silently times out at 30s on every Health call.
+  private_subnet_ids_primary         = data.terraform_remote_state.base.outputs.lambda_subnet_ids_primary
+  private_subnet_ids_secondary       = data.terraform_remote_state.base.outputs.lambda_subnet_ids_secondary
   lambda_security_group_id_primary   = data.terraform_remote_state.base.outputs.lambda_security_group_id_primary
   lambda_security_group_id_secondary = data.terraform_remote_state.base.outputs.lambda_security_group_id_secondary
   vpc_endpoint_dns_primary           = data.terraform_remote_state.base.outputs.vpc_endpoint_dns_primary

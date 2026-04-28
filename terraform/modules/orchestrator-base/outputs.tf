@@ -18,6 +18,31 @@ output "private_subnet_ids_secondary" {
   value       = aws_subnet.secondary_private[*].id
 }
 
+# Subnets where every required VPCE has an ENI. Some services (notably
+# AWS Health) only support a subset of AZs per region; a Lambda placed in
+# an AZ where its endpoint has no ENI silently times out at 30s.
+output "lambda_subnet_ids_primary" {
+  description = "Subnets safe for orchestrator Lambdas (intersection of all VPCE-supported AZs, primary)."
+  value = [
+    for s in aws_subnet.primary_private : s.id
+    if alltrue([
+      for svc in local.vpc_endpoint_services :
+      contains(data.aws_vpc_endpoint_service.primary[svc].availability_zones, s.availability_zone)
+    ])
+  ]
+}
+
+output "lambda_subnet_ids_secondary" {
+  description = "Subnets safe for orchestrator Lambdas (intersection of all VPCE-supported AZs, secondary)."
+  value = [
+    for s in aws_subnet.secondary_private : s.id
+    if alltrue([
+      for svc in local.vpc_endpoint_services :
+      contains(data.aws_vpc_endpoint_service.secondary[svc].availability_zones, s.availability_zone)
+    ])
+  ]
+}
+
 output "routable_subnet_ids_primary" {
   description = "Routable subnet IDs (outer NLB lives here)."
   value       = aws_subnet.primary_routable[*].id

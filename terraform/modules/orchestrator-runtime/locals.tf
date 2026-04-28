@@ -43,7 +43,7 @@ locals {
     ENDPOINT_RDS           = lookup(var.vpc_endpoint_dns_primary, "rds", "")
     ENDPOINT_STEPFUNCTIONS = lookup(var.vpc_endpoint_dns_primary, "states", "")
     ENDPOINT_SYNTHETICS    = lookup(var.vpc_endpoint_dns_primary, "synthetics", "")
-    ENDPOINT_HEALTH        = "https://health.us-east-1.amazonaws.com"
+    ENDPOINT_HEALTH        = lookup(var.vpc_endpoint_dns_primary, "health", "")
     ENDPOINT_EVENTS        = lookup(var.vpc_endpoint_dns_primary, "events", "")
     ENDPOINT_LAMBDA        = lookup(var.vpc_endpoint_dns_primary, "lambda", "")
   }
@@ -57,7 +57,7 @@ locals {
     ENDPOINT_RDS           = lookup(var.vpc_endpoint_dns_secondary, "rds", "")
     ENDPOINT_STEPFUNCTIONS = lookup(var.vpc_endpoint_dns_secondary, "states", "")
     ENDPOINT_SYNTHETICS    = lookup(var.vpc_endpoint_dns_secondary, "synthetics", "")
-    ENDPOINT_HEALTH        = "https://health.us-east-1.amazonaws.com"
+    ENDPOINT_HEALTH        = lookup(var.vpc_endpoint_dns_secondary, "health", "")
     ENDPOINT_EVENTS        = lookup(var.vpc_endpoint_dns_secondary, "events", "")
     ENDPOINT_LAMBDA        = lookup(var.vpc_endpoint_dns_secondary, "lambda", "")
   }

@@ -45,6 +45,9 @@ locals {
     "lambda",
     "sts",
     "secretsmanager",
+    "health", # AWS Health — signal_collector.aws_health_open_events()
+    # calls describe_events every minute. Without this VPCE the Lambda hangs
+    # at 30s timeout on every invocation in a no-internet-egress VPC.
   ]
 }
 

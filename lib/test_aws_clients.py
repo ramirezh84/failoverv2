@@ -54,9 +54,11 @@ def test_missing_endpoint_env_raises_clear_error() -> None:
 
 
 @pytest.mark.usefixtures("aws_credentials", "vpc_endpoints")
-def test_health_client_pinned_to_us_east_1() -> None:
-    # The Health control plane only exists in us-east-1; the factory pins it.
+def test_health_client_uses_local_region() -> None:
+    # AWS Health Dashboard supports regional VPC endpoints (since 2022). Each
+    # region's Lambda uses its own region's Health endpoint; cross-region from
+    # a no-internet-egress Lambda would hang per CLAUDE.md §11 #1.
     os.environ["AWS_REGION"] = "us-east-2"
     aws_clients.reset_caches()
     client = aws_clients.health()
-    assert client.meta.region_name == "us-east-1"
+    assert client.meta.region_name == "us-east-2"
