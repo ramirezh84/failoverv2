@@ -93,4 +93,3 @@ machine-readable contract.
   - **`sns_topic_arn_secondary`** (string) **(required)**
   - **`events`** (array) **(required)**
     Item enum: `failover_authorized`, `failover_initiated`, `failover_step_completed`, `failover_completed`, `failover_failed`, `failback_initiated`, `failback_completed`, `failback_failed`, `signal_red`, `signal_recovered`.
-

@@ -5,8 +5,12 @@
 set -euo pipefail
 
 bad=0
+# lib/aws_clients.py is the sanctioned factory — its calls span multiple
+# lines with endpoint_url on a subsequent line, so the line-grep would false
+# positive. Every other Python file under lambdas/ + lib/ is checked.
 files=$(find lambdas lib -name '*.py' -type f \
-        ! -name 'test_*.py' ! -name 'conftest.py' 2>/dev/null || true)
+        ! -name 'test_*.py' ! -name 'conftest.py' \
+        ! -path 'lib/aws_clients.py' 2>/dev/null || true)
 
 for f in $files; do
   while IFS=: read -r lineno match; do
