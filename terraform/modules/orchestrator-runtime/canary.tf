@@ -114,7 +114,7 @@ resource "aws_synthetics_canary" "in_primary_probes_secondary" {
   run_config {
     timeout_in_seconds = 30
     memory_in_mb       = 960
-    active_tracing     = true
+    active_tracing     = false
     environment_variables = {
       TARGET_URL        = "https://${var.app_name}.${var.secondary_region}.${var.route53_zone_name}/health"
       IGNORE_TLS_ERRORS = "true"
@@ -142,7 +142,7 @@ resource "aws_synthetics_canary" "in_secondary_probes_primary" {
   run_config {
     timeout_in_seconds = 30
     memory_in_mb       = 960
-    active_tracing     = true
+    active_tracing     = false
     environment_variables = {
       TARGET_URL        = "https://${var.app_name}.${var.primary_region}.${var.route53_zone_name}/health"
       IGNORE_TLS_ERRORS = "true"
