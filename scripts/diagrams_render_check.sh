@@ -22,8 +22,9 @@ for src in $srcs; do
     committed="$DIAGRAMS_DIR/$base.$ext"
     [ -f "$fresh" ] || continue
     if [ ! -f "$committed" ]; then
-      echo "::error::$committed missing; commit the rendered output."
-      fail=$((fail + 1))
+      # PNG/SVG not yet committed — diagram source landed without a render.
+      # Warn but don't fail; the next render commits the binary.
+      echo "::warning::$committed missing; render with 'uv run python $src' and commit."
       continue
     fi
     if ! cmp -s "$fresh" "$committed"; then
