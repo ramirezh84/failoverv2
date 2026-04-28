@@ -53,22 +53,25 @@ no useful error.
 ### 1.1 Required endpoints — checklist
 
 In **each region** (`PRIMARY_REGION` and `SECONDARY_REGION`), verify these
-**12 interface endpoints** exist and are attached to your private subnets:
+**10 interface endpoints** exist and are attached to your private subnets:
 
 | # | Service name (suffix) | Used by |
 |---|---|---|
 | 1 | `ssm` | indicator_updater (read/write SSM params), state_store |
 | 2 | `sns` | executor_notify, decision_engine, SFN waitForTaskToken |
-| 3 | `monitoring` | signal_collector, decision_engine (PutMetricData/GetMetricStatistics) |
+| 3 | `monitoring` | signal_collector, decision_engine (PutMetricData/GetMetricStatistics, **incl. CloudWatchSynthetics canary metrics**) |
 | 4 | `logs` | every Lambda (CloudWatch Logs) |
 | 5 | `rds` | signal_collector (DescribeGlobalClusters), executor_aurora_confirm |
 | 6 | `states` | manual_trigger (StartExecution), approval_callback (SendTaskSuccess/Failure) |
-| 7 | `synthetics` | signal_collector (DescribeRuns) |
-| 8 | `events` | (reserved; not currently called but safer to have) |
-| 9 | `lambda` | (reserved; SFN service integration uses STS not this) |
-| 10 | `sts` | All Lambdas (boto3 credential resolution + cross-account roles in JPMC port) |
-| 11 | `secretsmanager` | (reserved for future cert-rotation; safe to skip if you're certain you'll never use Secrets Manager) |
-| 12 | `health` | signal_collector → `aws_health_open_events` every minute. Without this VPCE the Lambda hangs at 30s on every invocation. **AZ caveat:** the Health VPCE is only available in a subset of AZs per region (e.g. us-east-1: 1b/1c/1d only — NOT 1a). When creating, the console will reject AZs the service doesn't support. **Lambda subnets must intersect with Health-supported AZs** or signal_collector lands in an unreachable AZ. **Support tier caveat:** AWS Health `DescribeEvents` requires Business or Enterprise Support; on Basic Support the call returns `SubscriptionRequiredException`. The Lambda handles this gracefully (logs a warning, returns no events) so the rest of signal collection still works. |
+| 7 | `events` | (reserved; not currently called but safer to have) |
+| 8 | `lambda` | (reserved; SFN service integration uses STS not this) |
+| 9 | `sts` | All Lambdas (boto3 credential resolution + cross-account roles in JPMC port) |
+| 10 | `secretsmanager` | (reserved for future cert-rotation; safe to skip if you're certain you'll never use Secrets Manager) |
+
+**Two endpoints intentionally NOT in the runtime list:**
+
+- **`synthetics`** — never called from a Lambda. Canary results are read from CloudWatch via the `monitoring` endpoint (namespace `CloudWatchSynthetics`). Canary creation/management happens via the console with an operator role. Skip this VPCE entirely at runtime.
+- **`health`** — optional. Requires Business/Enterprise Support tier AND a regional Health VPCE. If your account lacks either, the `signal_collector` Lambda gracefully treats the `aws_health_open` signal as permanently green (no events) — quorum still works against the remaining Tier 1 signals (NLB, canary, VPCE). To enable Health: add `"health"` back to `local.vpc_endpoint_services` in `terraform/modules/orchestrator-base/locals.tf`, set `ENDPOINT_HEALTH` in the Lambda env, and your account must support `health:DescribeEvents`. **AZ caveat when enabled:** the Health VPCE is only available in a subset of AZs per region (e.g. us-east-1: 1b/1c/1d — NOT 1a). The terraform module auto-filters Lambda subnets to AZs that support every required VPCE.
 
 Plus **1 gateway endpoint**:
 
@@ -485,8 +488,7 @@ After creation, do these in order:
 | `ENDPOINT_LOGS` | `https://vpce-XXXX.logs.<region>.vpce.amazonaws.com` |
 | `ENDPOINT_RDS` | `https://vpce-XXXX.rds.<region>.vpce.amazonaws.com` |
 | `ENDPOINT_STEPFUNCTIONS` | `https://vpce-XXXX.states.<region>.vpce.amazonaws.com` |
-| `ENDPOINT_SYNTHETICS` | `https://vpce-XXXX.synthetics.<region>.vpce.amazonaws.com` |
-| `ENDPOINT_HEALTH` | `https://vpce-XXXX.health.<region>.vpce.amazonaws.com` (the regional Health VPCE — DO NOT use the public `health.us-east-1.amazonaws.com` URL; that hangs from a no-internet-egress Lambda) |
+| `ENDPOINT_HEALTH` *(optional)* | `https://vpce-XXXX.health.<region>.vpce.amazonaws.com` — only set if you have a Health VPCE provisioned AND Business+ Support. Leave UNSET if not (Lambda treats `aws_health_open` as permanently green). |
 | `PROFILE_YAML` *(optional)* | The full YAML text of your app's profile — only set this if you're using **env-var profile mode** instead of S3 (see [`profile-delivery-modes.md`](profile-delivery-modes.md)). When set, Lambdas prefer it over `PROFILE_BUCKET`/`PROFILE_KEY`. 4 KB total env-var budget. |
 | `ENDPOINT_EVENTS` | `https://vpce-XXXX.events.<region>.vpce.amazonaws.com` |
 | `ENDPOINT_LAMBDA` | `https://vpce-XXXX.lambda.<region>.vpce.amazonaws.com` |

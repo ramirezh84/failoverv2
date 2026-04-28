@@ -74,18 +74,22 @@ def _canary_name_for_url(routable_url: str) -> str:
 def aws_health_open_events(region: str) -> list[str]:
     """List open AWS Health event ARNs that affect ``region``.
 
-    Fails open on common error modes:
-    - SubscriptionRequiredException: account is on Basic Support; the Health
-      API is only available with Business/Enterprise. Operators should either
-      upgrade support OR remove `aws_health_open` from the profile's Tier 1
-      signals to silence this warning.
-    - Endpoint timeout / connection error: VPCE missing or misrouted; Lambda
-      should not block signal collection on this single Tier 1 source.
-
-    Returns an empty list on any of these failures so the Decision Engine
-    isn't blocked and quorum still works on the other Tier 1 signals.
+    Fails open on three modes:
+    - ``ENDPOINT_HEALTH`` env unset: Health VPCE not provisioned (org doesn't
+      permit Health API access, or account on Basic Support). Skip the call
+      entirely and treat as "no events". Decision Engine sees a permanently
+      green signal — quorum still works against the remaining Tier 1 signals.
+    - SubscriptionRequiredException: account on Basic Support; same outcome
+      (returns []) but logs a warning so operators see the cause.
+    - Endpoint timeout / connection error: VPCE misrouted; don't block
+      signal collection on this single source.
     """
     import logging  # noqa: PLC0415
+    import os  # noqa: PLC0415
+
+    if not os.environ.get("ENDPOINT_HEALTH"):
+        # Not configured for this deployment — by design.
+        return []
 
     from botocore.exceptions import (  # noqa: PLC0415
         ClientError,
