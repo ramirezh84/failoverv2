@@ -104,7 +104,7 @@ resource "aws_synthetics_canary" "in_primary_probes_secondary" {
   execution_role_arn   = aws_iam_role.canary_primary.arn
   handler              = "routable_endpoint_probe.handler"
   zip_file             = data.archive_file.canary_zip.output_path
-  runtime_version      = "syn-python-selenium-2.1"
+  runtime_version      = "syn-python-selenium-10.0"
   start_canary         = true
 
   schedule {
@@ -132,7 +132,7 @@ resource "aws_synthetics_canary" "in_secondary_probes_primary" {
   execution_role_arn   = aws_iam_role.canary_secondary.arn
   handler              = "routable_endpoint_probe.handler"
   zip_file             = data.archive_file.canary_zip.output_path
-  runtime_version      = "syn-python-selenium-2.1"
+  runtime_version      = "syn-python-selenium-10.0"
   start_canary         = true
 
   schedule {
