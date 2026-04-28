@@ -1,0 +1,10 @@
+# All changes default to the Principal Engineer.
+*       @ramirezh84
+
+# Spec is locked; changes need explicit owner sign-off.
+/SPEC.md        @ramirezh84
+/CLAUDE.md      @ramirezh84
+
+# Profile schema and ADRs are append-only / governance-controlled.
+/profiles/profile.schema.json   @ramirezh84
+/docs/adr/                      @ramirezh84

@@ -1,0 +1,29 @@
+name: diagrams-render-check
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "docs/diagrams/**"
+      - ".github/workflows/diagrams-render-check.yml"
+  push:
+    branches: [main]
+    paths:
+      - "docs/diagrams/**"
+
+permissions: { contents: read }
+
+env:
+  PYTHON_VERSION: "3.14"
+
+jobs:
+  render-check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv python install ${{ env.PYTHON_VERSION }}
+      - run: uv sync --extra dev
+      - run: sudo apt-get update && sudo apt-get install -y graphviz
+      - name: Re-render and diff
+        run: bash scripts/diagrams_render_check.sh

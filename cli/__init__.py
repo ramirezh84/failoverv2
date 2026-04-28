@@ -1,0 +1,1 @@
+"""failoverctl CLI package."""

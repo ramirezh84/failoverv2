@@ -1,0 +1,180 @@
+[project]
+name = "failoverv2"
+version = "0.1.0"
+description = "Multi-region failover orchestrator for ECS Fargate apps on AWS"
+readme = "README.md"
+requires-python = ">=3.14"
+license = { text = "Proprietary" }
+authors = [{ name = "Principal Engineer" }]
+
+dependencies = [
+    "boto3>=1.35.0",
+    "botocore>=1.35.0",
+    "pydantic>=2.9.0",
+    "pyyaml>=6.0.2",
+    "jsonschema>=4.23.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.7.0",
+    "mypy>=1.13.0",
+    "pytest>=8.3.0",
+    "pytest-cov>=5.0.0",
+    "pytest-mock>=3.14.0",
+    "moto[all]>=5.0.0",
+    "boto3-stubs[essential,rds,elasticache,sns,ssm,stepfunctions,synthetics,health,logs,cloudwatch,events,lambda,s3]>=1.35.0",
+    "types-PyYAML",
+    "types-jsonschema",
+    "bandit>=1.7.10",
+    "pip-audit>=2.7.3",
+    "semgrep>=1.92.0",
+    "diagrams>=0.24.0",
+]
+
+[project.scripts]
+failoverctl = "cli.failoverctl:main"
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = { find = { include = ["lib*", "lambdas*", "cli*"] } }
+
+# ----------------------------------------------------------------------------
+# ruff
+# ----------------------------------------------------------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+extend-exclude = [
+    "**/.terraform/**",
+    "tests/results/**",
+    "docs/diagrams/**/*.png",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "F",      # pyflakes
+    "W",      # pycodestyle warnings
+    "I",      # isort
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "UP",     # pyupgrade
+    "SIM",    # flake8-simplify
+    "RUF",    # ruff-specific
+    "N",      # pep8-naming
+    "S",      # bandit subset
+    "PT",     # pytest style
+    "RET",    # return statements
+    "ARG",    # unused args
+    "PL",     # pylint subset
+    "TRY",    # tryceratops
+]
+ignore = [
+    "E501",     # line length handled by formatter
+    "PLR0913",  # too many arguments
+    "TRY003",   # long exception messages
+    "S101",     # asserts allowed in tests
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101", "S105", "S106", "PLR2004", "ARG001", "ARG002"]
+"**/test_*.py" = ["S101", "S105", "S106", "PLR2004", "ARG001", "ARG002"]
+"docs/diagrams/*.py" = ["E501", "I001"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["lib", "lambdas", "cli"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+# ----------------------------------------------------------------------------
+# mypy
+# ----------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.14"
+strict = true
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+no_implicit_reexport = true
+disallow_untyped_defs = true
+disallow_any_generics = true
+check_untyped_defs = true
+explicit_package_bases = true
+namespace_packages = true
+mypy_path = "$MYPY_CONFIG_FILE_DIR"
+exclude = [
+    "build/",
+    "dist/",
+    ".venv/",
+    "tests/results/",
+    "docs/diagrams/",
+]
+
+[[tool.mypy.overrides]]
+module = ["moto.*", "diagrams.*"]
+ignore_missing_imports = true
+
+# ----------------------------------------------------------------------------
+# pytest
+# ----------------------------------------------------------------------------
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests", "lib", "lambdas", "cli"]
+python_files = ["test_*.py", "*_test.py"]
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--showlocals",
+    "--tb=short",
+    "--cov=lib",
+    "--cov=lambdas",
+    "--cov=cli",
+    "--cov-branch",
+    "--cov-report=term-missing",
+    "--cov-report=xml",
+    "--cov-fail-under=80",
+]
+markers = [
+    "unit: fast, no AWS",
+    "integration: requires deployed test harness",
+    "chaos: full chaos scenario; long-running",
+    "slow: takes >5 seconds",
+]
+filterwarnings = [
+    "error",
+    "ignore::DeprecationWarning:botocore.*",
+    "ignore::DeprecationWarning:moto.*",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["lib", "lambdas", "cli"]
+omit = [
+    "*/test_*.py",
+    "*/tests/*",
+    "docs/diagrams/*",
+]
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+
+# Branch coverage gate is enforced by --cov-fail-under above (line). We
+# additionally enforce branch via the `partial_branches` mechanism in CI by
+# parsing coverage.xml. See .github/workflows/ci.yml job `unit-tests`.
