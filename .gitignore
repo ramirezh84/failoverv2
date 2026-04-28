@@ -68,3 +68,4 @@ docs/diagrams/.render-cache/
 .env
 .env.*
 !.env.example
+uv.lock
