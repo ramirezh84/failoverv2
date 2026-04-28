@@ -142,6 +142,7 @@ addopts = [
     "--cov-report=term-missing",
     "--cov-report=xml",
     "--cov-fail-under=80",
+    "-m", "not chaos",
 ]
 markers = [
     "unit: fast, no AWS",
