@@ -90,3 +90,55 @@ def test_load_from_s3_routes_through_aws_client(
     profile = profile_loader.load_from_s3("audit-bucket", "test-app/profile.yaml")
     assert profile.app_name == "test-app"
     assert captured == {"Bucket": "audit-bucket", "Key": "test-app/profile.yaml"}
+
+
+def test_load_from_env_round_trips(monkeypatch: pytest.MonkeyPatch) -> None:
+    yaml_text = (REPO / "profiles" / "test-app.yaml").read_text(encoding="utf-8")
+    monkeypatch.setenv("PROFILE_YAML", yaml_text)
+    profile = profile_loader.load_from_env()
+    assert profile.app_name == "test-app"
+
+
+def test_load_from_env_missing_var_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("PROFILE_YAML", raising=False)
+    with pytest.raises(ValueError, match="not set or empty"):
+        profile_loader.load_from_env()
+
+
+def test_load_profile_prefers_env_over_s3(monkeypatch: pytest.MonkeyPatch) -> None:
+    yaml_text = (REPO / "profiles" / "test-app.yaml").read_text(encoding="utf-8")
+    monkeypatch.setenv("PROFILE_YAML", yaml_text)
+    monkeypatch.setenv("PROFILE_BUCKET", "should-not-be-used")
+    monkeypatch.setenv("PROFILE_KEY", "should-not-be-used")
+    # If S3 path were taken, this would fail because s3() isn't mocked.
+    profile = profile_loader.load_profile()
+    assert profile.app_name == "test-app"
+
+
+def test_load_profile_falls_back_to_s3(monkeypatch: pytest.MonkeyPatch) -> None:
+    yaml_text = (REPO / "profiles" / "test-app.yaml").read_text(encoding="utf-8")
+    monkeypatch.delenv("PROFILE_YAML", raising=False)
+    monkeypatch.setenv("PROFILE_BUCKET", "b")
+    monkeypatch.setenv("PROFILE_KEY", "k")
+
+    class FakeBody:
+        def read(self) -> bytes:
+            return yaml_text.encode()
+
+    class FakeS3:
+        exceptions = type("E", (), {"NoSuchKey": type("E", (Exception,), {})})
+
+        def get_object(self, Bucket: str, Key: str) -> dict[str, FakeBody]:  # noqa: N803
+            return {"Body": FakeBody()}
+
+    fake = FakeS3()
+    monkeypatch.setattr(profile_loader, "s3", lambda: fake)
+    profile = profile_loader.load_profile()
+    assert profile.app_name == "test-app"
+
+
+def test_load_profile_no_source_configured_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    for v in ("PROFILE_YAML", "PROFILE_BUCKET", "PROFILE_KEY"):
+        monkeypatch.delenv(v, raising=False)
+    with pytest.raises(ValueError, match="Profile source not configured"):
+        profile_loader.load_profile()

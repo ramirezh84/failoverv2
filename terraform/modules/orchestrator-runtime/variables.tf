@@ -28,6 +28,26 @@ variable "statemachines_root" {
   type        = string
 }
 
+variable "profile_yaml_inline" {
+  description = <<-EOT
+    Optional: profile YAML text passed to every Lambda as the PROFILE_YAML
+    env var. When set, Lambdas load the profile from env (no runtime S3
+    dependency). When empty (default), Lambdas fall back to PROFILE_BUCKET
+    + PROFILE_KEY (S3 mode).
+
+    Tradeoffs of inline mode:
+    - 4 KB Lambda env-var budget (typical profile ~2-3 KB).
+    - Profile changes require terraform apply (vs S3 upload + minute tick).
+    - No CRR — both regions updated together via terraform.
+    - Visible to anyone with lambda:GetFunctionConfiguration.
+
+    Use when the env doesn't permit a runtime S3 dependency on every Lambda
+    invocation, or when operators prefer profile-as-code in the IaC plan.
+  EOT
+  type        = string
+  default     = ""
+}
+
 variable "private_subnet_ids_primary" {
   description = "Private subnet ids (primary)."
   type        = list(string)

@@ -19,7 +19,7 @@ from lambdas.decision_engine.aws import (
     secondary_warm_standby_ready,
 )
 from lambdas.decision_engine.logic import evaluate
-from lib.profile_loader import load_from_s3
+from lib.profile_loader import load_profile
 from lib.sns_publisher import publish_event
 from lib.state_store import DecisionRecord, read_latest_decision, write_decision
 from lib.structured_logger import get_logger
@@ -31,13 +31,11 @@ def lambda_handler(event: dict[str, Any], context: object) -> dict[str, Any]:
     del context
     app_name = os.environ["APP_NAME"]
     region = os.environ["AWS_REGION"]
-    profile_bucket = os.environ["PROFILE_BUCKET"]
-    profile_key = os.environ.get("PROFILE_KEY", f"{app_name}/profile.yaml")
     audit_bucket = os.environ["AUDIT_BUCKET"]
     sns_topic = os.environ["SNS_TOPIC_ARN"]
     profile_version = event.get("profile_version", "unknown")
 
-    profile = load_from_s3(profile_bucket, profile_key)
+    profile = load_profile()
     now = datetime.now(UTC)
 
     if region == profile.primary_region:
