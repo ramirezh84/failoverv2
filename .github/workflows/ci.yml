@@ -118,7 +118,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
+      - uses: hashicorp/setup-terraform@v4
         with: { terraform_version: "${{ env.TERRAFORM_VERSION }}" }
       - run: terraform fmt -check -recursive terraform/
 
@@ -126,7 +126,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
+      - uses: hashicorp/setup-terraform@v4
         with: { terraform_version: "${{ env.TERRAFORM_VERSION }}" }
       - name: Validate every root module (no backend init, no creds)
         run: bash scripts/terraform_validate_all.sh
