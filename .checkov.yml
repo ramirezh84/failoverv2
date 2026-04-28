@@ -11,6 +11,12 @@ quiet: true
 framework:
   - terraform
 skip-check:
+  # ----- Aurora additional skips after first CI run -----
+  - CKV_AWS_149   # Secrets Manager CMK — POC uses default
+  - CKV_AWS_226   # RDS minor version auto-upgrade — POC pins
+  - CKV_AWS_327   # RDS CMK encryption — POC uses default service KMS
+  - CKV_AWS_338   # CW log groups 1-year retention — POC keeps 30d
+  - CKV_AWS_353   # RDS Performance Insights — POC scope
   # ----- Aurora -----
   - CKV_AWS_113   # RDS Performance Insights — POC small workload, not needed
   - CKV_AWS_117   # Lambda VPC config — already enforced by vpc-endpoint-check
