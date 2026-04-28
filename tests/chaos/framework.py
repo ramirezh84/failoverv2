@@ -289,11 +289,13 @@ def force_signal_red(signal_name: str, value: float = 1.0) -> None:
 
 def get_profile_bucket() -> str:
     """Return the profile bucket name for the deployed test-app stack."""
+    import shutil  # noqa: PLC0415
     import subprocess  # noqa: PLC0415
 
-    out = subprocess.check_output(  # noqa: S603,S607
+    terraform_bin = shutil.which("terraform") or "terraform"
+    out = subprocess.check_output(  # noqa: S603
         [
-            "terraform",
+            terraform_bin,
             f"-chdir=terraform/apps/{APP}/base",
             "output",
             "-raw",

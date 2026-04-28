@@ -10,6 +10,7 @@ See ``docs/scenarios/scenario-12-split-brain-attempt.md``.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import uuid
 
@@ -106,14 +107,12 @@ def test_scenario_12() -> None:
     def cleanup() -> None:
         try:
             if state.get("first", (False, ""))[0]:
-                try:
+                with contextlib.suppress(TimeoutError):
                     fw.wait_for_sfn_status(
                         state["first"][1],
                         {"SUCCEEDED", "FAILED", "TIMED_OUT", "ABORTED"},
                         timeout=300,
                     )
-                except TimeoutError:
-                    pass
         finally:
             if "original_profile" in state:
                 fw.restore_profile(state["original_profile"])
