@@ -24,7 +24,7 @@ jobs:
     # We surface parse failures as warnings rather than blocking merges.
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-node@v4
         with: { node-version: "20" }
       - run: npm install -g @mermaid-js/mermaid-cli@10.9.1
