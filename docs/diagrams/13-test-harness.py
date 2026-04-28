@@ -4,8 +4,6 @@ Render with:
     uv run python docs/diagrams/13-test-harness.py
 """
 
-# ruff: noqa: I001
-
 from diagrams import Cluster, Diagram, Edge
 from diagrams.aws.compute import Fargate
 from diagrams.aws.database import RDS

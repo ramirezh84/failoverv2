@@ -16,9 +16,12 @@ for src in $srcs; do
   base="$(basename "$src" .py)"
   outdir="$work/$base"
   mkdir -p "$outdir"
-  ( cd "$outdir" && uv run python "$OLDPWD/$src" )
+  # uv needs to find pyproject.toml; --project pins it. The script (.py) is
+  # invoked with the project root as cwd so its `filename = "docs/diagrams/..."`
+  # writes into the work directory under the right relative path.
+  ( cd "$outdir" && mkdir -p docs/diagrams && PYTHONPATH="$OLDPWD" uv --project "$OLDPWD" run python "$OLDPWD/$src" )
   for ext in png svg; do
-    fresh="$outdir/$base.$ext"
+    fresh="$outdir/$DIAGRAMS_DIR/$base.$ext"
     committed="$DIAGRAMS_DIR/$base.$ext"
     [ -f "$fresh" ] || continue
     if [ ! -f "$committed" ]; then

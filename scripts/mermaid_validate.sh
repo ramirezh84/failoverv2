@@ -6,6 +6,12 @@ set -euo pipefail
 tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
 
+# mmdc uses Puppeteer-bundled Chromium which on Ubuntu 24.04 has no usable
+# sandbox. Provide a config file with --no-sandbox.
+cat >"$tmpdir/puppeteer.json" <<EOF
+{ "args": ["--no-sandbox", "--disable-setuid-sandbox"] }
+EOF
+
 files=$(find docs runbooks -name '*.md' -type f 2>/dev/null || true)
 for top in README.md ARCHITECTURE.md CONTRIBUTING.md SECURITY.md; do
   [ -f "$top" ] && files="$files $top"
@@ -25,7 +31,9 @@ done
 while IFS= read -r mmd; do
   [ -n "$mmd" ] || continue
   count=$((count + 1))
-  if ! npx --yes -p @mermaid-js/mermaid-cli@10.9.1 mmdc -i "$mmd" -o "$mmd.svg" 2>/tmp/mmd-err.log; then
+  if ! npx --yes -p @mermaid-js/mermaid-cli@10.9.1 mmdc \
+      --puppeteerConfigFile "$tmpdir/puppeteer.json" \
+      -i "$mmd" -o "$mmd.svg" 2>/tmp/mmd-err.log; then
     echo "::error::Mermaid parse failed in $(basename "$mmd")"
     cat /tmp/mmd-err.log
     fail=$((fail + 1))

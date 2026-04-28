@@ -4,8 +4,6 @@ Render with:
     uv run python docs/diagrams/12-vpc-and-endpoints.py
 """
 
-# ruff: noqa: I001
-
 from diagrams import Cluster, Diagram, Edge
 from diagrams.aws.compute import Lambda
 from diagrams.aws.network import (
@@ -13,7 +11,6 @@ from diagrams.aws.network import (
     PrivateSubnet,
     PublicSubnet,
     RouteTable,
-    VPC,
     VPCEndpoint,
 )
 
@@ -23,7 +20,7 @@ with Diagram(
     filename="docs/diagrams/12-vpc-and-endpoints",
     outformat=["png", "svg"],
     graph_attr={"fontsize": "14", "bgcolor": "transparent"},
-):
+):  # noqa: SIM117 — diagrams library requires nested context for the cluster hierarchy
     with Cluster("VPC us-east-1 (10.10.0.0/16)"):
         igw = InternetGateway("IGW")
         with Cluster("Routable subnets (a/b/c)"):
@@ -45,5 +42,9 @@ with Diagram(
             lambdas = Lambda("Orchestrator Lambdas\n(VPC-attached)")
         igw >> rt_pub >> routable
         rt_priv >> private
-        lambdas >> Edge(label="HTTPS") >> [vpce_ssm, vpce_sns, vpce_cw, vpce_logs, vpce_rds, vpce_states, vpce_health]
+        (
+            lambdas
+            >> Edge(label="HTTPS")
+            >> [vpce_ssm, vpce_sns, vpce_cw, vpce_logs, vpce_rds, vpce_states, vpce_health]
+        )
         lambdas >> vpce_s3

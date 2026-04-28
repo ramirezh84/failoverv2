@@ -134,7 +134,7 @@ SCENARIOS = [
     },
 ]
 
-SCENARIO_TPL = '''# Scenario {n:02d} — {title}
+SCENARIO_TPL = """# Scenario {n:02d} — {title}
 
 **Audience:** Engineers + SREs.
 **Summary:** {summary}
@@ -208,7 +208,7 @@ sequenceDiagram
 ```
 
 _Last reviewed: 2026-04-27._
-'''
+"""
 
 RUNBOOKS = [
     {
@@ -329,7 +329,9 @@ RUNBOOKS = [
         "slug": "split-brain-recovery",
         "title": "Split-brain recovery",
         "when": "`failoverctl status test-app` shows BOTH regions with role=ACTIVE.",
-        "prereqs": ["AWS profile `tbed`. The orchestrator's anti-split-brain guard should prevent this; if you're here, something is very wrong."],
+        "prereqs": [
+            "AWS profile `tbed`. The orchestrator's anti-split-brain guard should prevent this; if you're here, something is very wrong."
+        ],
         "procedure": [
             "STOP. Do not let the app continue writing in both regions.",
             "Determine which region you want to keep ACTIVE. Usually that's the region holding the Aurora writer (check RDS console).",
@@ -378,13 +380,17 @@ RUNBOOKS = [
             "`failoverctl status <app>`.",
             "Run scenarios 1, 7 against the new app.",
         ],
-        "verification": ["Both scenarios pass; `make state-dump APP=<app>` shows known-good baseline."],
-        "rollback": ["Revert the PR. `terraform destroy` per `make harness-down APP=<app>` if needed."],
+        "verification": [
+            "Both scenarios pass; `make state-dump APP=<app>` shows known-good baseline."
+        ],
+        "rollback": [
+            "Revert the PR. `terraform destroy` per `make harness-down APP=<app>` if needed."
+        ],
         "escalation": ["Onboarding bugs: file an issue with the new_app_onboarding label."],
     },
 ]
 
-RUNBOOK_TPL = '''# {title}
+RUNBOOK_TPL = """# {title}
 
 **Audience:** SRE on-call.
 
@@ -413,7 +419,7 @@ RUNBOOK_TPL = '''# {title}
 {escalation}
 
 _Last reviewed: 2026-04-27._
-'''
+"""
 
 
 def _bullet_list(items: list[str]) -> str:

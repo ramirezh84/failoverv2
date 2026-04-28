@@ -8,19 +8,10 @@ Produces 02-topology.png and 02-topology.svg in the same directory. The
 files; commit fresh PNG/SVG whenever this script changes.
 """
 
-# ruff: noqa: I001 — diagrams library nodes have specific import paths
-
 from diagrams import Cluster, Diagram, Edge
 from diagrams.aws.compute import Fargate
 from diagrams.aws.database import RDS
-from diagrams.aws.network import (
-    APIGateway,
-    ELB,
-    NLB,
-    Route53,
-    VPC,
-    VPCEndpoint,
-)
+from diagrams.aws.network import ELB, NLB, APIGateway, Route53, VPCEndpoint
 from diagrams.aws.security import ACM
 from diagrams.onprem.queue import Kafka
 
