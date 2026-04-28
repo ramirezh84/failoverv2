@@ -147,7 +147,6 @@ For **each region** (do this in the region's KMS console):
 > rest of this guide assumes S3 mode for the profile; substitute the
 > env-var step where noted in Phase 4.3.
 
-
 For **each region**, create two buckets:
 
 **Profile bucket:** `<APP_NAME>-profiles-<ACCOUNT_ID>-use1` (and `-use2`)
