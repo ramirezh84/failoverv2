@@ -11,7 +11,7 @@ files; commit fresh PNG/SVG whenever this script changes.
 from diagrams import Cluster, Diagram, Edge
 from diagrams.aws.compute import Fargate
 from diagrams.aws.database import RDS
-from diagrams.aws.network import ELB, NLB, APIGateway, Route53, VPCEndpoint
+from diagrams.aws.network import ELB, NLB, APIGateway, Route53, Endpoint
 from diagrams.aws.security import ACM
 from diagrams.onprem.queue import Kafka
 
@@ -38,7 +38,7 @@ with Diagram(
                 alb = ELB("ALB")
                 ecs = Fargate("ECS Fargate\n(warm standby ≥1)")
                 aurora = RDS("Aurora\n(Global writer/reader)")
-                vpce = VPCEndpoint("VPC Endpoints\n(SSM/SNS/RDS/CW/...)")
+                vpce = Endpoint("VPC Endpoints\n(SSM/SNS/RDS/CW/...)")
             r53 >> Edge(label="DNS") >> outer
             outer >> Edge(label="TLS term") >> api_gw >> inner_nlb >> alb >> ecs
             ecs >> aurora

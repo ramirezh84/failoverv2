@@ -4,15 +4,20 @@
 
 ```mermaid
 flowchart TD
-  Start[Decision Engine tick] --> Quorum{count(Tier1 red)<br/>&ge; tier1_quorum?}
-  Quorum -- no --> StateGreen[state=GREEN<br/>or WATCHING]
-  Quorum -- yes --> Dwell{red continuous<br/>&ge; dwell_minutes?}
-  Dwell -- no --> StateWatching[state=WATCHING<br/>reason=dwell_not_held]
-  Dwell -- yes --> Hyst{time_since_last<br/>&ge; hysteresis?}
-  Hyst -- no --> StateWatching2[state=WATCHING<br/>reason=hysteresis_blocked]
-  Hyst -- yes --> Auto{auto_failover==true?}
-  Auto -- no --> AlertOnly[FAILOVER_AUTHORIZED_BUT_NOT_AUTO<br/>SNS HIGH only]
-  Auto -- yes --> Safe{secondary_safe?}
-  Safe -- no --> Unsafe[FAILOVER_AUTHORIZED_BUT_UNSAFE<br/>SNS CRITICAL]
-  Safe -- yes --> Authorized[FAILOVER_AUTHORIZED<br/>emit control metric=0.0<br/>SNS CRITICAL]
+  Start[Decision Engine tick] --> Quorum{quorum held}
+  Quorum -- no --> StateGreen[GREEN or WATCHING]
+  Quorum -- yes --> Dwell{dwell held}
+  Dwell -- no --> StateWatchingD[WATCHING dwell_not_held]
+  Dwell -- yes --> Hyst{hysteresis held}
+  Hyst -- no --> StateWatchingH[WATCHING hysteresis_blocked]
+  Hyst -- yes --> Auto{auto_failover true}
+  Auto -- no --> AlertOnly[FAILOVER_AUTHORIZED_BUT_NOT_AUTO SNS HIGH]
+  Auto -- yes --> Safe{secondary_safe}
+  Safe -- no --> Unsafe[FAILOVER_AUTHORIZED_BUT_UNSAFE SNS CRITICAL]
+  Safe -- yes --> Authorized[FAILOVER_AUTHORIZED control_metric 0.0 SNS CRITICAL]
 ```
+
+The choice nodes are intentionally short (mermaid flowchart parser dislikes
+parens and HTML entities inside `{...}` choice labels). For the full
+expansion of each gate — quorum threshold, dwell window, hysteresis window,
+secondary readiness check — see [`docs/decision-engine.md`](../decision-engine.md) §3.

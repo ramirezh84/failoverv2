@@ -11,7 +11,7 @@ from diagrams.aws.network import (
     PrivateSubnet,
     PublicSubnet,
     RouteTable,
-    VPCEndpoint,
+    Endpoint,
 )
 
 with Diagram(
@@ -30,15 +30,15 @@ with Diagram(
             private = PrivateSubnet("/24 each")
             rt_priv = RouteTable("RT private")
             with Cluster("Interface endpoints"):
-                vpce_ssm = VPCEndpoint("ssm")
-                vpce_sns = VPCEndpoint("sns")
-                vpce_cw = VPCEndpoint("monitoring")
-                vpce_logs = VPCEndpoint("logs")
-                vpce_rds = VPCEndpoint("rds")
-                vpce_states = VPCEndpoint("states")
-                vpce_health = VPCEndpoint("health")
+                vpce_ssm = Endpoint("ssm")
+                vpce_sns = Endpoint("sns")
+                vpce_cw = Endpoint("monitoring")
+                vpce_logs = Endpoint("logs")
+                vpce_rds = Endpoint("rds")
+                vpce_states = Endpoint("states")
+                vpce_health = Endpoint("health")
             with Cluster("Gateway endpoint"):
-                vpce_s3 = VPCEndpoint("s3")
+                vpce_s3 = Endpoint("s3")
             lambdas = Lambda("Orchestrator Lambdas\n(VPC-attached)")
         igw >> rt_pub >> routable
         rt_priv >> private
