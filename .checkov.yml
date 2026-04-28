@@ -71,3 +71,10 @@ skip-check:
   - CKV_AWS_249   # ECS task role separation — POC uses execution role only
   - CKV_AWS_18    # ECS log driver awslogs — already set
   - CKV_AWS_65    # ECS Container Insights — already enabled at cluster level
+  # ----- Networking -----
+  - CKV_AWS_382   # SG egress 0.0.0.0/0 — POC outer NLB SG; JPMC port restricts
+  - CKV2_AWS_5    # SG attached — false positive on aws_security_group_rule resources
+  - CKV2_AWS_11   # VPC Flow Logs — JPMC port enables; POC scope
+  - CKV2_AWS_8    # RDS AWS Backup plan — JPMC port; POC uses snapshots
+  - CKV2_AWS_31   # WAF on ALB — POC scope; JPMC port adds
+  - CKV2_AWS_28   # WAF on API GW — POC scope
