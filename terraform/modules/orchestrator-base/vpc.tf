@@ -82,11 +82,18 @@ resource "aws_security_group" "primary_lambda" {
   description = "Egress for orchestrator Lambdas to VPC endpoints"
   vpc_id      = aws_vpc.primary.id
   egress {
-    description = "HTTPS to VPC endpoints"
+    description = "HTTPS to interface VPC endpoints (in-VPC IPs)"
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
     cidr_blocks = [aws_vpc.primary.cidr_block]
+  }
+  egress {
+    description     = "HTTPS to S3 via gateway endpoint (prefix list)"
+    from_port       = 443
+    to_port         = 443
+    protocol        = "tcp"
+    prefix_list_ids = [aws_vpc_endpoint.primary_s3_gateway.prefix_list_id]
   }
   tags = merge(local.common_tags_use1, { component = "sg-lambda" })
 }
@@ -183,11 +190,18 @@ resource "aws_security_group" "secondary_lambda" {
   description = "Egress for orchestrator Lambdas to VPC endpoints"
   vpc_id      = aws_vpc.secondary.id
   egress {
-    description = "HTTPS to VPC endpoints"
+    description = "HTTPS to interface VPC endpoints (in-VPC IPs)"
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
     cidr_blocks = [aws_vpc.secondary.cidr_block]
+  }
+  egress {
+    description     = "HTTPS to S3 via gateway endpoint (prefix list)"
+    from_port       = 443
+    to_port         = 443
+    protocol        = "tcp"
+    prefix_list_ids = [aws_vpc_endpoint.secondary_s3_gateway.prefix_list_id]
   }
   tags = merge(local.common_tags_use2, { component = "sg-lambda" })
 }

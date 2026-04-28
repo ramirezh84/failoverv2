@@ -2,7 +2,59 @@
 # Lambda functions. We package each Lambda's directory plus the lib/ directory
 # into a zip and deploy two copies (one per region). Each Lambda is VPC-attached
 # in private subnets — vpc-endpoint-check CI job enforces this.
+#
+# Third-party deps (pyyaml, pydantic, jsonschema) ship via a Lambda Layer.
+# boto3/botocore are pre-installed in the Lambda runtime, so we don't bundle
+# them.
 ###############################################################################
+
+# Build the deps layer: pip install into .builds/deps/python so the layer
+# unpacks at /opt/python (Lambda's default PYTHONPATH for layers).
+resource "null_resource" "deps_layer_build" {
+  triggers = {
+    deps_hash = sha256("pyyaml==6.0.2|pydantic==2.9.2|jsonschema==4.23.0")
+  }
+  provisioner "local-exec" {
+    command = <<-EOT
+      set -e
+      rm -rf ${path.module}/.builds/deps
+      mkdir -p ${path.module}/.builds/deps/python
+      pip3 install \
+        --quiet \
+        --platform manylinux2014_x86_64 \
+        --implementation cp \
+        --python-version 3.13 \
+        --only-binary=:all: \
+        --target ${path.module}/.builds/deps/python \
+        pyyaml==6.0.2 pydantic==2.9.2 jsonschema==4.23.0
+    EOT
+  }
+}
+
+data "archive_file" "deps_layer_zip" {
+  type        = "zip"
+  source_dir  = "${path.module}/.builds/deps"
+  output_path = "${path.module}/.builds/deps-layer.zip"
+  depends_on  = [null_resource.deps_layer_build]
+}
+
+resource "aws_lambda_layer_version" "deps_primary" {
+  provider                 = aws.use1
+  layer_name               = "${var.app_name}-deps"
+  filename                 = data.archive_file.deps_layer_zip.output_path
+  source_code_hash         = data.archive_file.deps_layer_zip.output_base64sha256
+  compatible_runtimes      = ["python3.13"]
+  compatible_architectures = ["x86_64"]
+}
+
+resource "aws_lambda_layer_version" "deps_secondary" {
+  provider                 = aws.use2
+  layer_name               = "${var.app_name}-deps"
+  filename                 = data.archive_file.deps_layer_zip.output_path
+  source_code_hash         = data.archive_file.deps_layer_zip.output_base64sha256
+  compatible_runtimes      = ["python3.13"]
+  compatible_architectures = ["x86_64"]
+}
 
 # Build one zip per Lambda. Each zip contains: lambdas/<name>/* + lib/*
 # archive_file recomputes its hash whenever any source file changes, so a
@@ -47,6 +99,12 @@ data "archive_file" "lambda_zip" {
       filename = "lib/${source.value}"
     }
   }
+  # Bundle the profile JSON Schema (lib.profile_loader resolves it via
+  # lib/../profiles/profile.schema.json → /var/task/profiles/profile.schema.json).
+  source {
+    content  = file("${var.lib_source_root}/../profiles/profile.schema.json")
+    filename = "profiles/profile.schema.json"
+  }
 }
 
 # CloudWatch log groups (created up front so retention is set even before
@@ -84,6 +142,8 @@ resource "aws_lambda_function" "primary" {
     subnet_ids         = var.private_subnet_ids_primary
     security_group_ids = [var.lambda_security_group_id_primary]
   }
+
+  layers = [aws_lambda_layer_version.deps_primary.arn]
 
   environment {
     variables = merge(
@@ -123,6 +183,8 @@ resource "aws_lambda_function" "secondary" {
     subnet_ids         = var.private_subnet_ids_secondary
     security_group_ids = [var.lambda_security_group_id_secondary]
   }
+
+  layers = [aws_lambda_layer_version.deps_secondary.arn]
 
   environment {
     variables = merge(

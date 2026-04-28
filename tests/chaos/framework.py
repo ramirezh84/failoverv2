@@ -198,6 +198,30 @@ def assert_audit_records(bucket: str, prefix: str, min_count: int = 1) -> tuple[
     return n >= min_count, f"count={n}"
 
 
+def assert_no_failover_started(since_seconds: int = 300) -> tuple[bool, str]:
+    """Assert no failover Step Functions execution started in the last N seconds
+    in either region. Used by non-mutating scenarios to verify no failover was
+    triggered."""
+    session = boto3.Session(profile_name=PROFILE)
+    sts = session.client("sts", region_name=PRIMARY_REGION)
+    account = sts.get_caller_identity()["Account"]
+    cutoff = datetime.now(UTC) - timedelta(seconds=since_seconds)
+    found: list[str] = []
+    for region in (PRIMARY_REGION, SECONDARY_REGION):
+        sfn = session.client("stepfunctions", region_name=region)
+        for sm in (f"{APP}-failover", f"{APP}-failback"):
+            arn = f"arn:aws:states:{region}:{account}:stateMachine:{sm}"
+            try:
+                resp = sfn.list_executions(stateMachineArn=arn, maxResults=20)
+            except sfn.exceptions.StateMachineDoesNotExist:
+                continue
+            for ex in resp.get("executions", []):
+                start = ex["startDate"]
+                if start.replace(tzinfo=UTC) >= cutoff:
+                    found.append(f"{region}:{sm}:{ex['name']}:{ex['status']}")
+    return not found, f"unexpected_executions={found}" if found else "no_executions"
+
+
 def assert_aurora_writer_in(global_cluster_id: str, expected_region: str) -> tuple[bool, str]:
     rds = _client("rds", PRIMARY_REGION)
     resp = rds.describe_global_clusters(GlobalClusterIdentifier=global_cluster_id)
@@ -318,6 +342,7 @@ __all__ = [
     "assert_indicator_role",
     "assert_log_event_count",
     "assert_metric_max",
+    "assert_no_failover_started",
     "assert_sns_events_in_order",
     "assert_state_machine_path",
     "force_signal_red",

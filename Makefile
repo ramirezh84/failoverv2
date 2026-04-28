@@ -55,7 +55,7 @@ harness-up: ## Apply base + runtime layers (idempotent). Reuses live infra if up
 runtime-apply: ## Apply only the runtime layer (Lambdas, Step Functions, etc.). <5 min typical.
 	cd $(TF_RUNTIME) && AWS_PROFILE=$(AWS_PROFILE) terraform init -input=false
 	cd $(TF_RUNTIME) && AWS_PROFILE=$(AWS_PROFILE) terraform apply $(TF_VARS) \
-	  -var "base_state_bucket=$$($(MAKE) -s _state_bucket_name)" \
+	  -var "base_state_bucket=$$(AWS_PROFILE=$(AWS_PROFILE) $(AWS) sts get-caller-identity --query Account --output text | xargs -I{} echo failoverv2-tfstate-{})" \
 	  -auto-approve
 
 .PHONY: harness-down
@@ -63,7 +63,7 @@ harness-down: ## Destroy everything. Use only when explicitly stable or for clea
 	@printf "Are you sure you want to destroy %s harness? [yes/N] " "$(APP)"
 	@read CONFIRM; if [ "$$CONFIRM" != "yes" ]; then echo "aborted"; exit 1; fi
 	cd $(TF_RUNTIME) && AWS_PROFILE=$(AWS_PROFILE) terraform destroy $(TF_VARS) \
-	  -var "base_state_bucket=$$($(MAKE) -s _state_bucket_name)" \
+	  -var "base_state_bucket=$$(AWS_PROFILE=$(AWS_PROFILE) $(AWS) sts get-caller-identity --query Account --output text | xargs -I{} echo failoverv2-tfstate-{})" \
 	  -auto-approve
 	cd $(TF_BASE) && AWS_PROFILE=$(AWS_PROFILE) terraform destroy $(TF_VARS) -auto-approve
 
@@ -112,7 +112,7 @@ scenario-%: ## Run scenario N (1-14). Produces tests/results/scenario-N.json.
 	@N=$*; \
 	FILE=$$(find tests/chaos -name "test_scenario_$$(printf '%02d' $$N)_*.py" | head -1); \
 	if [ -z "$$FILE" ]; then echo "Scenario $$N not found"; exit 1; fi; \
-	$(UV) run pytest "$$FILE" -m chaos -v
+	$(UV) run pytest "$$FILE" -m chaos -v --no-cov
 
 .PHONY: scenario-reset
 scenario-reset: ## Reset orchestrator runtime state (SSM, control metric, in-flight SFN). <30s.

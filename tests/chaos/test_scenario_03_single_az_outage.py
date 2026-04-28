@@ -1,9 +1,7 @@
-"""Scenario 03: Single AZ outage in primary. Surviving AZ keeps NLB > 0. NO failover.
+"""Scenario 03: non-mutating signal injection — verify no failover was triggered.
 
-See ``docs/scenarios/scenario-03-single-az-outage.md`` for the full minute-by-minute
-walkthrough and assertion rationale (SPEC §8.6.3).
-
-This test runs against a deployed test harness (`make harness-up` first).
+See ``docs/scenarios/scenario-03-single-az-outage.md`` for the walkthrough.
+This test runs against a deployed test harness (``make harness-up`` first).
 """
 
 from __future__ import annotations
@@ -18,12 +16,11 @@ pytestmark = pytest.mark.chaos
 def test_scenario_03() -> None:
     def setup() -> None:
         fw.reset_orchestrator_state()
-        # Non-mutating: signal injection only.
-        fw.force_signal_red("outer_nlb_unhealthy", 0.0)
+        fw.force_signal_red("single_az_unhealthy", 1.0)
 
     def assertions() -> dict[str, callable]:
         return {
-            "primary_role_active": lambda: fw.assert_indicator_role(fw.PRIMARY_REGION, "ACTIVE"),
+            "no_failover_started": lambda: fw.assert_no_failover_started(since_seconds=180),
             "primary_alarm_ok": lambda: fw.assert_alarm_state(
                 f"{fw.APP}-PrimaryHealthControl-use1", fw.PRIMARY_REGION, "OK"
             ),
@@ -31,7 +28,6 @@ def test_scenario_03() -> None:
 
     def cleanup() -> None:
         fw.reset_orchestrator_state()
-        # nothing to clean — no real state changes
 
     result = fw.run_scenario(
         name="scenario-03-single-az-outage",
