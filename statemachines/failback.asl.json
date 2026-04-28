@@ -1,0 +1,213 @@
+{
+  "Comment": "Failback state machine — DNS-first variant per SPEC §6.1. Mirror of failover.asl.json with source/target swapped, plus a QUIESCE wait between drain and R53 flip. Always operator-triggered (auto_failback hard-disabled by profile schema).",
+  "StartAt": "PRECHECK_PRIMARY",
+  "TimeoutSeconds": 3600,
+  "States": {
+    "PRECHECK_PRIMARY": {
+      "Type": "Task",
+      "Resource": "${precheck_lambda_arn}",
+      "Parameters": {
+        "failover_id.$": "$.failover_id",
+        "app_name.$": "$.app_name",
+        "target_region.$": "$.target_region"
+      },
+      "ResultPath": "$.precheck",
+      "Retry": [{"ErrorEquals": ["States.ALL"], "IntervalSeconds": 2, "MaxAttempts": 3, "BackoffRate": 2.0}],
+      "Catch": [{"ErrorEquals": ["States.ALL"], "Next": "FAIL", "ResultPath": "$.error"}],
+      "Next": "NOTIFY_INITIATED"
+    },
+    "NOTIFY_INITIATED": {
+      "Type": "Task",
+      "Resource": "${notify_lambda_arn}",
+      "Parameters": {
+        "event_name": "failback_initiated",
+        "severity": "INFO",
+        "app_name.$": "$.app_name",
+        "failover_id.$": "$.failover_id",
+        "step": "NOTIFY_INITIATED",
+        "dry_run.$": "$.dry_run",
+        "topic_arn": "${sns_topic_arn}",
+        "detail": {
+          "source_region.$": "$.source_region",
+          "target_region.$": "$.target_region",
+          "operator.$": "$.operator"
+        }
+      },
+      "ResultPath": "$.notify_initiated",
+      "Retry": [{"ErrorEquals": ["States.ALL"], "IntervalSeconds": 2, "MaxAttempts": 3, "BackoffRate": 2.0}],
+      "Catch": [{"ErrorEquals": ["States.ALL"], "Next": "FAIL", "ResultPath": "$.error"}],
+      "Next": "DRAIN_SECONDARY_INDICATOR"
+    },
+    "DRAIN_SECONDARY_INDICATOR": {
+      "Type": "Task",
+      "Resource": "${indicator_updater_lambda_arn}",
+      "Parameters": {
+        "app_name.$": "$.app_name",
+        "region.$": "$.source_region",
+        "role": "DRAINING",
+        "executor_run_id.$": "$.failover_id",
+        "sequence": 1,
+        "dry_run.$": "$.dry_run"
+      },
+      "ResultPath": "$.drain_secondary",
+      "Retry": [{"ErrorEquals": ["States.ALL"], "IntervalSeconds": 2, "MaxAttempts": 3, "BackoffRate": 2.0}],
+      "Catch": [{"ErrorEquals": ["States.ALL"], "Next": "FAIL", "ResultPath": "$.error"}],
+      "Next": "WAIT_DRAIN"
+    },
+    "WAIT_DRAIN": {
+      "Type": "Wait",
+      "SecondsPath": "$.profile_snapshot.drain_seconds",
+      "Next": "QUIESCE"
+    },
+    "QUIESCE": {
+      "Type": "Wait",
+      "SecondsPath": "$.profile_snapshot.quiesce_seconds",
+      "Next": "FLIP_R53_CONTROL_METRIC"
+    },
+    "FLIP_R53_CONTROL_METRIC": {
+      "Type": "Task",
+      "Resource": "${flip_r53_metric_lambda_arn}",
+      "Parameters": {
+        "app_name.$": "$.app_name",
+        "primary_region.$": "$.target_region",
+        "value": 1.0,
+        "dry_run.$": "$.dry_run"
+      },
+      "ResultPath": "$.flip_r53",
+      "Retry": [{"ErrorEquals": ["States.ALL"], "IntervalSeconds": 2, "MaxAttempts": 3, "BackoffRate": 2.0}],
+      "Catch": [{"ErrorEquals": ["States.ALL"], "Next": "FAIL", "ResultPath": "$.error"}],
+      "Next": "WAIT_R53_PROPAGATION"
+    },
+    "WAIT_R53_PROPAGATION": {
+      "Type": "Wait",
+      "SecondsPath": "$.profile_snapshot.r53_propagation_seconds",
+      "Next": "PROMOTE_PRIMARY_INDICATOR"
+    },
+    "PROMOTE_PRIMARY_INDICATOR": {
+      "Type": "Task",
+      "Resource": "${indicator_updater_lambda_arn}",
+      "Parameters": {
+        "app_name.$": "$.app_name",
+        "region.$": "$.target_region",
+        "role": "ACTIVE",
+        "executor_run_id.$": "$.failover_id",
+        "sequence": 2,
+        "dry_run.$": "$.dry_run"
+      },
+      "ResultPath": "$.promote_primary",
+      "Retry": [{"ErrorEquals": ["States.ALL"], "IntervalSeconds": 2, "MaxAttempts": 3, "BackoffRate": 2.0}],
+      "Catch": [{"ErrorEquals": ["States.ALL"], "Next": "FAIL", "ResultPath": "$.error"}],
+      "Next": "AURORA_GATE_DECISION"
+    },
+    "AURORA_GATE_DECISION": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "And": [
+            {"Variable": "$.profile_snapshot.components.aurora", "BooleanEquals": true},
+            {"Variable": "$.profile_snapshot.aurora_manual_approval_required", "BooleanEquals": true}
+          ],
+          "Next": "AURORA_GATE_PAUSE"
+        },
+        {"Variable": "$.profile_snapshot.components.aurora", "BooleanEquals": true, "Next": "AURORA_CONFIRM_LOOP"}
+      ],
+      "Default": "POSTCHECK"
+    },
+    "AURORA_GATE_PAUSE": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish.waitForTaskToken",
+      "Parameters": {
+        "TopicArn": "${sns_topic_arn}",
+        "Subject.$": "States.Format('AURORA APPROVAL REQUIRED (failback) — {}/{}', $.app_name, $.failover_id)",
+        "Message": {
+          "event": "aurora_gate_paused",
+          "app_name.$": "$.app_name",
+          "failover_id.$": "$.failover_id",
+          "target_region.$": "$.target_region",
+          "task_token.$": "$$.Task.Token",
+          "instructions": "Promote Aurora primary cluster to writer; then run failoverctl approve --execution-id <id> to resume."
+        },
+        "MessageAttributes": {
+          "app_name": {"DataType": "String", "StringValue.$": "$.app_name"},
+          "event": {"DataType": "String", "StringValue": "aurora_gate_paused"},
+          "severity": {"DataType": "String", "StringValue": "CRITICAL"}
+        }
+      },
+      "ResultPath": "$.aurora_approval",
+      "TimeoutSecondsPath": "$.profile_snapshot.aurora_confirm_timeout_minutes",
+      "Catch": [{"ErrorEquals": ["States.Timeout", "OperatorAbort"], "Next": "FAIL", "ResultPath": "$.error"}],
+      "Next": "AURORA_CONFIRM_LOOP"
+    },
+    "AURORA_CONFIRM_LOOP": {
+      "Type": "Task",
+      "Resource": "${aurora_confirm_lambda_arn}",
+      "Parameters": {
+        "app_name.$": "$.app_name",
+        "failover_id.$": "$.failover_id",
+        "target_region.$": "$.target_region",
+        "global_cluster_id.$": "$.profile_snapshot.aurora_global_cluster_id",
+        "iteration.$": "$.aurora_iteration"
+      },
+      "ResultPath": "$.aurora",
+      "Retry": [{"ErrorEquals": ["States.ALL"], "IntervalSeconds": 5, "MaxAttempts": 3, "BackoffRate": 2.0}],
+      "Catch": [{"ErrorEquals": ["States.ALL"], "Next": "FAIL", "ResultPath": "$.error"}],
+      "Next": "AURORA_CONFIRMED?"
+    },
+    "AURORA_CONFIRMED?": {
+      "Type": "Choice",
+      "Choices": [{"Variable": "$.aurora.confirmed", "BooleanEquals": true, "Next": "POSTCHECK"}],
+      "Default": "AURORA_WAIT"
+    },
+    "AURORA_WAIT": {"Type": "Wait", "Seconds": 30, "Next": "AURORA_CONFIRM_LOOP"},
+    "POSTCHECK": {
+      "Type": "Task",
+      "Resource": "${postcheck_lambda_arn}",
+      "Parameters": {
+        "app_name.$": "$.app_name",
+        "failover_id.$": "$.failover_id",
+        "target_region.$": "$.target_region"
+      },
+      "ResultPath": "$.postcheck",
+      "Retry": [{"ErrorEquals": ["States.ALL"], "IntervalSeconds": 2, "MaxAttempts": 3, "BackoffRate": 2.0}],
+      "Catch": [{"ErrorEquals": ["States.ALL"], "Next": "FAIL", "ResultPath": "$.error"}],
+      "Next": "NOTIFY_COMPLETED"
+    },
+    "NOTIFY_COMPLETED": {
+      "Type": "Task",
+      "Resource": "${notify_lambda_arn}",
+      "Parameters": {
+        "event_name": "failback_completed",
+        "severity": "INFO",
+        "app_name.$": "$.app_name",
+        "failover_id.$": "$.failover_id",
+        "step": "NOTIFY_COMPLETED",
+        "dry_run.$": "$.dry_run",
+        "topic_arn": "${sns_topic_arn}",
+        "detail": {
+          "target_region.$": "$.target_region",
+          "writer_region.$": "$.aurora.writer_region",
+          "operator.$": "$.operator"
+        }
+      },
+      "ResultPath": "$.notify_completed",
+      "Retry": [{"ErrorEquals": ["States.ALL"], "IntervalSeconds": 2, "MaxAttempts": 3, "BackoffRate": 2.0}],
+      "Next": "STABLE_PRIMARY"
+    },
+    "STABLE_PRIMARY": {"Type": "Succeed"},
+    "FAIL": {
+      "Type": "Task",
+      "Resource": "${notify_lambda_arn}",
+      "Parameters": {
+        "event_name": "failback_failed",
+        "severity": "CRITICAL",
+        "app_name.$": "$.app_name",
+        "failover_id.$": "$.failover_id",
+        "step": "FAIL",
+        "dry_run.$": "$.dry_run",
+        "topic_arn": "${sns_topic_arn}",
+        "detail": {"error.$": "$.error"}
+      },
+      "End": true
+    }
+  }
+}
