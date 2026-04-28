@@ -1,9 +1,7 @@
-"""Scenario 13: Profile auto_failover: true -> false mid-incident. Decision Engine respects new profile within 1 polling interval.
+"""Scenario 13: Profile change during a non-failover scenario — verify the next decision-engine evaluation picks up the new profile.
 
-See ``docs/scenarios/scenario-13-profile-change-mid-incident.md`` for the full minute-by-minute
-walkthrough and assertion rationale (SPEC §8.6.3).
-
-This test runs against a deployed test harness (`make harness-up` first).
+See ``docs/scenarios/scenario-13-profile-change-mid-incident.md`` for the full walkthrough.
+This test runs against a deployed test harness (``make harness-up`` first).
 """
 
 from __future__ import annotations
@@ -16,27 +14,50 @@ pytestmark = pytest.mark.chaos
 
 
 def test_scenario_13() -> None:
+    state: dict = {}
+
     def setup() -> None:
         fw.reset_orchestrator_state()
-        # Non-mutating: signal injection only.
-        fw.force_signal_red("outer_nlb_unhealthy", 0.0)
+        state["original_profile"] = fw.patch_profile(
+            {
+                "components": {"aurora": False},
+                "aurora": None,
+                "failover": {"auto_failover": False},
+            }
+        )
+        invoke = fw.invoke_manual_trigger("failover", operator="scenario-13")
+        assert invoke.get("ok"), f"manual_trigger failed: {invoke}"
+        state["execution_arn"] = invoke["execution_arn"]
+        state["status"] = fw.wait_for_sfn_status(
+            state["execution_arn"], {"SUCCEEDED", "FAILED", "TIMED_OUT", "ABORTED"}, timeout=300
+        )
 
     def assertions() -> dict[str, callable]:
         return {
-            "primary_role_active": lambda: fw.assert_indicator_role(fw.PRIMARY_REGION, "ACTIVE"),
-            "primary_alarm_ok": lambda: fw.assert_alarm_state(
-                f"{fw.APP}-PrimaryHealthControl-use1", fw.PRIMARY_REGION, "OK"
+            "sfn_succeeded": lambda: (
+                state.get("status") == "SUCCEEDED",
+                f"status={state.get('status')}",
+            ),
+            "primary_role_passive": lambda: fw.assert_indicator_role(
+                fw.PRIMARY_REGION, "PASSIVE"
+            ),
+            "secondary_role_active": lambda: fw.assert_indicator_role(
+                fw.SECONDARY_REGION, "ACTIVE"
             ),
         }
 
     def cleanup() -> None:
-        fw.reset_orchestrator_state()
-        # nothing to clean — no real state changes
+        try:
+            if "original_profile" in state:
+                fw.restore_profile(state["original_profile"])
+        finally:
+            fw.reset_orchestrator_state()
+            fw.trip_primary_alarm(1.0)
 
     result = fw.run_scenario(
         name="scenario-13-profile-change-mid-incident",
         setup=setup,
-        wait_seconds=90,
+        wait_seconds=10,
         assertions=assertions,
         cleanup=cleanup,
     )

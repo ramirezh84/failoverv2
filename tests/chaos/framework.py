@@ -88,10 +88,20 @@ def assert_dns_resolves_to(record_name: str, expected_substring: str) -> tuple[b
     return expected_substring in addr, f"resolved={addr}"
 
 
-def assert_indicator_role(region: str, expected: str) -> tuple[bool, str]:
-    ssm = _client("ssm", region)
+def assert_indicator_role(
+    role_region: str, expected: str, *, ssm_region: str | None = None
+) -> tuple[bool, str]:
+    """Assert the indicator parameter for ``role_region`` equals ``expected``.
+
+    Per the POC's single-source-of-truth simplification (see
+    `terraform/modules/orchestrator-runtime/stepfunctions.tf`), both regions'
+    role parameters live in PRIMARY_REGION SSM. ``ssm_region`` defaults to
+    PRIMARY_REGION; pass an override only when a scenario explicitly tests
+    cross-region read behavior.
+    """
+    ssm = _client("ssm", ssm_region or PRIMARY_REGION)
     try:
-        v = ssm.get_parameter(Name=f"/failover/{APP}/{region}/role")["Parameter"]["Value"]
+        v = ssm.get_parameter(Name=f"/failover/{APP}/{role_region}/role")["Parameter"]["Value"]
     except ssm.exceptions.ParameterNotFound:
         return False, "indicator parameter not set"
     return v == expected, f"got={v}"
@@ -277,6 +287,85 @@ def force_signal_red(signal_name: str, value: float = 1.0) -> None:
     )
 
 
+def get_profile_bucket() -> str:
+    """Return the profile bucket name for the deployed test-app stack."""
+    import subprocess  # noqa: PLC0415
+
+    out = subprocess.check_output(  # noqa: S603,S607
+        [
+            "terraform",
+            f"-chdir=terraform/apps/{APP}/base",
+            "output",
+            "-raw",
+            "profile_bucket_primary",
+        ],
+        env={**os.environ, "AWS_PROFILE": PROFILE},
+    )
+    return out.decode().strip()
+
+
+def patch_profile(overrides: dict[str, Any]) -> bytes:
+    """Deep-merge overrides into the profile in S3, return the original bytes
+    so the caller can restore it. CRR replicates to secondary; allow ~60s.
+    """
+    import yaml  # noqa: PLC0415
+
+    bucket = get_profile_bucket()
+    key = f"{APP}/profile.yaml"
+    s3 = _client("s3", PRIMARY_REGION)
+    original = s3.get_object(Bucket=bucket, Key=key)["Body"].read()
+    profile = yaml.safe_load(original)
+
+    def deep_merge(dst: dict, src: dict) -> dict:
+        for k, v in src.items():
+            if isinstance(v, dict) and isinstance(dst.get(k), dict):
+                deep_merge(dst[k], v)
+            else:
+                dst[k] = v
+        return dst
+
+    deep_merge(profile, overrides)
+    s3.put_object(
+        Bucket=bucket, Key=key, Body=yaml.safe_dump(profile, sort_keys=False).encode()
+    )
+    return original
+
+
+def restore_profile(original: bytes) -> None:
+    bucket = get_profile_bucket()
+    key = f"{APP}/profile.yaml"
+    s3 = _client("s3", PRIMARY_REGION)
+    s3.put_object(Bucket=bucket, Key=key, Body=original)
+
+
+def invoke_manual_trigger(
+    direction: str, *, operator: str = "chaos", dry_run: bool = False
+) -> dict:
+    lam = _client("lambda", PRIMARY_REGION)
+    resp = lam.invoke(
+        FunctionName=f"{APP}-manual_trigger-use1",
+        Payload=json.dumps(
+            {"direction": direction, "operator": operator, "dry_run": dry_run}
+        ).encode(),
+    )
+    return json.loads(resp["Payload"].read())
+
+
+def wait_for_sfn_status(execution_arn: str, terminal: set[str], timeout: int = 300) -> str:
+    """Poll Step Functions until the execution reaches a terminal status. Returns
+    the final status. Raises TimeoutError if the deadline elapses.
+    """
+    region = execution_arn.split(":")[3]
+    sfn = _client("stepfunctions", region)
+    end = time.time() + timeout
+    while time.time() < end:
+        status = sfn.describe_execution(executionArn=execution_arn)["status"]
+        if status in terminal:
+            return status
+        time.sleep(5)
+    raise TimeoutError(f"SFN {execution_arn} did not reach {terminal} in {timeout}s")
+
+
 def reset_orchestrator_state() -> None:
     """Equivalent to `make scenario-reset`. Called in scenario fixtures."""
     import subprocess  # noqa: PLC0415
@@ -346,7 +435,12 @@ __all__ = [
     "assert_sns_events_in_order",
     "assert_state_machine_path",
     "force_signal_red",
+    "get_profile_bucket",
+    "invoke_manual_trigger",
+    "patch_profile",
     "reset_orchestrator_state",
+    "restore_profile",
     "run_scenario",
     "trip_primary_alarm",
+    "wait_for_sfn_status",
 ]

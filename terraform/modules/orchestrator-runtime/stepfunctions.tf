@@ -5,44 +5,54 @@
 ###############################################################################
 
 locals {
+  # POC simplification: each SFN invokes its own region's indicator_updater
+  # for BOTH source and target indicator writes. Both region-roles are stored
+  # in the SFN-region's SSM. Per CLAUDE.md §11 #1, SFN cross-region Lambda
+  # invokes are not supported (Lambda.ResourceNotFoundException). True
+  # multi-region indicator topology is a follow-up — see TODO in
+  # docs/decision-engine.md.
   failover_definition_primary = templatefile("${var.statemachines_root}/failover.asl.json", {
-    precheck_lambda_arn          = aws_lambda_function.primary["executor_precheck"].arn
-    notify_lambda_arn            = aws_lambda_function.primary["executor_notify"].arn
-    indicator_updater_lambda_arn = aws_lambda_function.primary["indicator_updater"].arn
-    flip_r53_metric_lambda_arn   = aws_lambda_function.primary["executor_flip_r53_metric"].arn
-    aurora_confirm_lambda_arn    = aws_lambda_function.primary["executor_aurora_confirm"].arn
-    postcheck_lambda_arn         = aws_lambda_function.primary["executor_postcheck"].arn
-    sns_topic_arn                = var.sns_topic_arn_primary
+    precheck_lambda_arn                 = aws_lambda_function.primary["executor_precheck"].arn
+    notify_lambda_arn                   = aws_lambda_function.primary["executor_notify"].arn
+    indicator_updater_source_lambda_arn = aws_lambda_function.primary["indicator_updater"].arn
+    indicator_updater_target_lambda_arn = aws_lambda_function.primary["indicator_updater"].arn
+    flip_r53_metric_lambda_arn          = aws_lambda_function.primary["executor_flip_r53_metric"].arn
+    aurora_confirm_lambda_arn           = aws_lambda_function.primary["executor_aurora_confirm"].arn
+    postcheck_lambda_arn                = aws_lambda_function.primary["executor_postcheck"].arn
+    sns_topic_arn                       = var.sns_topic_arn_primary
   })
 
   failback_definition_primary = templatefile("${var.statemachines_root}/failback.asl.json", {
-    precheck_lambda_arn          = aws_lambda_function.primary["executor_precheck"].arn
-    notify_lambda_arn            = aws_lambda_function.primary["executor_notify"].arn
-    indicator_updater_lambda_arn = aws_lambda_function.primary["indicator_updater"].arn
-    flip_r53_metric_lambda_arn   = aws_lambda_function.primary["executor_flip_r53_metric"].arn
-    aurora_confirm_lambda_arn    = aws_lambda_function.primary["executor_aurora_confirm"].arn
-    postcheck_lambda_arn         = aws_lambda_function.primary["executor_postcheck"].arn
-    sns_topic_arn                = var.sns_topic_arn_primary
+    precheck_lambda_arn                 = aws_lambda_function.primary["executor_precheck"].arn
+    notify_lambda_arn                   = aws_lambda_function.primary["executor_notify"].arn
+    indicator_updater_source_lambda_arn = aws_lambda_function.primary["indicator_updater"].arn
+    indicator_updater_target_lambda_arn = aws_lambda_function.primary["indicator_updater"].arn
+    flip_r53_metric_lambda_arn          = aws_lambda_function.primary["executor_flip_r53_metric"].arn
+    aurora_confirm_lambda_arn           = aws_lambda_function.primary["executor_aurora_confirm"].arn
+    postcheck_lambda_arn                = aws_lambda_function.primary["executor_postcheck"].arn
+    sns_topic_arn                       = var.sns_topic_arn_primary
   })
 
   failover_definition_secondary = templatefile("${var.statemachines_root}/failover.asl.json", {
-    precheck_lambda_arn          = aws_lambda_function.secondary["executor_precheck"].arn
-    notify_lambda_arn            = aws_lambda_function.secondary["executor_notify"].arn
-    indicator_updater_lambda_arn = aws_lambda_function.secondary["indicator_updater"].arn
-    flip_r53_metric_lambda_arn   = aws_lambda_function.secondary["executor_flip_r53_metric"].arn
-    aurora_confirm_lambda_arn    = aws_lambda_function.secondary["executor_aurora_confirm"].arn
-    postcheck_lambda_arn         = aws_lambda_function.secondary["executor_postcheck"].arn
-    sns_topic_arn                = var.sns_topic_arn_secondary
+    precheck_lambda_arn                 = aws_lambda_function.secondary["executor_precheck"].arn
+    notify_lambda_arn                   = aws_lambda_function.secondary["executor_notify"].arn
+    indicator_updater_source_lambda_arn = aws_lambda_function.secondary["indicator_updater"].arn
+    indicator_updater_target_lambda_arn = aws_lambda_function.secondary["indicator_updater"].arn
+    flip_r53_metric_lambda_arn          = aws_lambda_function.secondary["executor_flip_r53_metric"].arn
+    aurora_confirm_lambda_arn           = aws_lambda_function.secondary["executor_aurora_confirm"].arn
+    postcheck_lambda_arn                = aws_lambda_function.secondary["executor_postcheck"].arn
+    sns_topic_arn                       = var.sns_topic_arn_secondary
   })
 
   failback_definition_secondary = templatefile("${var.statemachines_root}/failback.asl.json", {
-    precheck_lambda_arn          = aws_lambda_function.secondary["executor_precheck"].arn
-    notify_lambda_arn            = aws_lambda_function.secondary["executor_notify"].arn
-    indicator_updater_lambda_arn = aws_lambda_function.secondary["indicator_updater"].arn
-    flip_r53_metric_lambda_arn   = aws_lambda_function.secondary["executor_flip_r53_metric"].arn
-    aurora_confirm_lambda_arn    = aws_lambda_function.secondary["executor_aurora_confirm"].arn
-    postcheck_lambda_arn         = aws_lambda_function.secondary["executor_postcheck"].arn
-    sns_topic_arn                = var.sns_topic_arn_secondary
+    precheck_lambda_arn                 = aws_lambda_function.secondary["executor_precheck"].arn
+    notify_lambda_arn                   = aws_lambda_function.secondary["executor_notify"].arn
+    indicator_updater_source_lambda_arn = aws_lambda_function.secondary["indicator_updater"].arn
+    indicator_updater_target_lambda_arn = aws_lambda_function.secondary["indicator_updater"].arn
+    flip_r53_metric_lambda_arn          = aws_lambda_function.secondary["executor_flip_r53_metric"].arn
+    aurora_confirm_lambda_arn           = aws_lambda_function.secondary["executor_aurora_confirm"].arn
+    postcheck_lambda_arn                = aws_lambda_function.secondary["executor_postcheck"].arn
+    sns_topic_arn                       = var.sns_topic_arn_secondary
   })
 }
 
