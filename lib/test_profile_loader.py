@@ -128,7 +128,7 @@ def test_load_profile_falls_back_to_s3(monkeypatch: pytest.MonkeyPatch) -> None:
     class FakeS3:
         exceptions = type("E", (), {"NoSuchKey": type("E", (Exception,), {})})
 
-        def get_object(self, Bucket: str, Key: str) -> dict:  # noqa: N803
+        def get_object(self, Bucket: str, Key: str) -> dict[str, FakeBody]:  # noqa: N803
             return {"Body": FakeBody()}
 
     fake = FakeS3()
