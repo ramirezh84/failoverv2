@@ -143,7 +143,7 @@ jobs:
           else
             echo "have=0" >> "$GITHUB_OUTPUT"
           fi
-      - uses: terraform-linters/setup-tflint@v4
+      - uses: terraform-linters/setup-tflint@v6
         if: steps.any.outputs.have == '1'
       - if: steps.any.outputs.have == '1'
         run: tflint --init --config=$(pwd)/.tflint.hcl
