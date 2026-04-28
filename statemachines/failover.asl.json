@@ -133,7 +133,7 @@
           "failover_id.$": "$.failover_id",
           "target_region.$": "$.target_region",
           "task_token.$": "$$.Task.Token",
-          "instructions": "Promote Aurora secondary cluster to writer in ${target_region}, then run failoverctl approve --execution-id <id> to resume, or failoverctl abort to roll back."
+          "instructions": "Promote Aurora secondary cluster to writer in target_region, then run failoverctl approve --execution-id <id> to resume, or failoverctl abort to roll back."
         },
         "MessageAttributes": {
           "app_name": {"DataType": "String", "StringValue.$": "$.app_name"},
