@@ -27,7 +27,6 @@ _AWS_HOSTS_USE1: dict[str, str] = {
     "ENDPOINT_LOGS": f"https://logs.{_REGION_FOR_TESTS}.amazonaws.com",
     "ENDPOINT_RDS": f"https://rds.{_REGION_FOR_TESTS}.amazonaws.com",
     "ENDPOINT_STEPFUNCTIONS": f"https://states.{_REGION_FOR_TESTS}.amazonaws.com",
-    "ENDPOINT_SYNTHETICS": f"https://synthetics.{_REGION_FOR_TESTS}.amazonaws.com",
     "ENDPOINT_HEALTH": "https://health.us-east-1.amazonaws.com",
     "ENDPOINT_EVENTS": f"https://events.{_REGION_FOR_TESTS}.amazonaws.com",
     "ENDPOINT_LAMBDA": f"https://lambda.{_REGION_FOR_TESTS}.amazonaws.com",

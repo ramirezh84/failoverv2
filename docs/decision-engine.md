@@ -32,7 +32,7 @@ executor. Operators decide.
 |---|---|---|
 | `outer_nlb_unhealthy` | CW `AWS/NetworkELB UnHealthyHostCount` | All targets unhealthy ≥ dwell |
 | `cross_region_canary_fail` | CW Synthetics in opposite region | Failure rate ≥ `canary_failure_rate_pct` (default 80%) |
-| `aws_health_open` | AWS Health API (us-east-1 control plane) | Open issue affecting region's services |
+| `aws_health_open` | AWS Health API (regional VPCE; optional) | Open issue affecting region's services. **Requires Business+ Support tier AND a Health VPCE.** If `ENDPOINT_HEALTH` is unset, signal_collector treats this as permanently green and quorum operates over the remaining Tier 1 signals. |
 | `vpc_endpoint_errors` | CW `AWS/PrivateLinkEndpoints EndpointFailureCount` | >0 errors in dwell window |
 
 ### Tier 2 (gates *whether* failover is safe; cannot trigger)

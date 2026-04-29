@@ -34,6 +34,12 @@ locals {
     executor_postcheck       = "lambdas.executor_postcheck.handler.lambda_handler"
   }
 
+  # ENDPOINT_SYNTHETICS and ENDPOINT_HEALTH are intentionally absent —
+  # Synthetics is never called at runtime (canary results come via
+  # CloudWatch metrics) and Health is optional (signal_collector treats it
+  # as permanently green if the env var is unset). To re-enable Health,
+  # add "health" back to local.vpc_endpoint_services in orchestrator-base
+  # AND add the corresponding ENDPOINT_HEALTH line below.
   endpoint_env_primary = {
     ENDPOINT_SSM           = lookup(var.vpc_endpoint_dns_primary, "ssm", "")
     ENDPOINT_SNS           = lookup(var.vpc_endpoint_dns_primary, "sns", "")
@@ -42,8 +48,6 @@ locals {
     ENDPOINT_LOGS          = lookup(var.vpc_endpoint_dns_primary, "logs", "")
     ENDPOINT_RDS           = lookup(var.vpc_endpoint_dns_primary, "rds", "")
     ENDPOINT_STEPFUNCTIONS = lookup(var.vpc_endpoint_dns_primary, "states", "")
-    ENDPOINT_SYNTHETICS    = lookup(var.vpc_endpoint_dns_primary, "synthetics", "")
-    ENDPOINT_HEALTH        = lookup(var.vpc_endpoint_dns_primary, "health", "")
     ENDPOINT_EVENTS        = lookup(var.vpc_endpoint_dns_primary, "events", "")
     ENDPOINT_LAMBDA        = lookup(var.vpc_endpoint_dns_primary, "lambda", "")
   }
@@ -56,8 +60,6 @@ locals {
     ENDPOINT_LOGS          = lookup(var.vpc_endpoint_dns_secondary, "logs", "")
     ENDPOINT_RDS           = lookup(var.vpc_endpoint_dns_secondary, "rds", "")
     ENDPOINT_STEPFUNCTIONS = lookup(var.vpc_endpoint_dns_secondary, "states", "")
-    ENDPOINT_SYNTHETICS    = lookup(var.vpc_endpoint_dns_secondary, "synthetics", "")
-    ENDPOINT_HEALTH        = lookup(var.vpc_endpoint_dns_secondary, "health", "")
     ENDPOINT_EVENTS        = lookup(var.vpc_endpoint_dns_secondary, "events", "")
     ENDPOINT_LAMBDA        = lookup(var.vpc_endpoint_dns_secondary, "lambda", "")
   }

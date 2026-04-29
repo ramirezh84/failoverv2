@@ -35,7 +35,6 @@ if TYPE_CHECKING:
     from mypy_boto3_sns import SNSClient
     from mypy_boto3_ssm import SSMClient
     from mypy_boto3_stepfunctions import SFNClient
-    from mypy_boto3_synthetics import SyntheticsClient
 
 
 _DEFAULT_CONFIG = Config(
@@ -136,14 +135,10 @@ def stepfunctions() -> SFNClient:
     )
 
 
-@cache
-def synthetics() -> SyntheticsClient:
-    return boto3.client(
-        "synthetics",
-        region_name=_region(),
-        endpoint_url=_endpoint("ENDPOINT_SYNTHETICS"),
-        config=_DEFAULT_CONFIG,
-    )
+# Note: no synthetics() factory — Lambdas read canary results via the
+# CloudWatchSynthetics metric namespace (cloudwatch() above), not via the
+# Synthetics control-plane API. Canary management happens via the console
+# with an operator role.
 
 
 @cache
@@ -203,7 +198,6 @@ def reset_caches() -> None:
         cloudwatch_logs,
         rds,
         stepfunctions,
-        synthetics,
         health,
         events,
         lambda_,
@@ -223,7 +217,6 @@ __all__ = [
     "sns",
     "ssm",
     "stepfunctions",
-    "synthetics",
 ]
 
 

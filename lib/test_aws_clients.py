@@ -23,7 +23,6 @@ def test_every_factory_passes_endpoint_url() -> None:
         aws_clients.cloudwatch_logs: "ENDPOINT_LOGS",
         aws_clients.rds: "ENDPOINT_RDS",
         aws_clients.stepfunctions: "ENDPOINT_STEPFUNCTIONS",
-        aws_clients.synthetics: "ENDPOINT_SYNTHETICS",
         aws_clients.health: "ENDPOINT_HEALTH",
         aws_clients.events: "ENDPOINT_EVENTS",
         aws_clients.lambda_: "ENDPOINT_LAMBDA",

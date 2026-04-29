@@ -36,18 +36,24 @@ locals {
   vpc_endpoint_services = [
     "ssm",
     "sns",
-    "monitoring", # CloudWatch metrics
+    "monitoring", # CloudWatch metrics — incl. CloudWatchSynthetics canary metrics
     "logs",       # CloudWatch Logs
     "rds",
     "states", # Step Functions
-    "synthetics",
     "events", # EventBridge
     "lambda",
     "sts",
     "secretsmanager",
-    "health", # AWS Health — signal_collector.aws_health_open_events()
-    # calls describe_events every minute. Without this VPCE the Lambda hangs
-    # at 30s timeout on every invocation in a no-internet-egress VPC.
+    # synthetics: NOT needed at runtime. Lambdas read canary results via the
+    # CloudWatchSynthetics metric namespace (monitoring endpoint). Canary
+    # management (create/start/stop) happens via the console with an
+    # operator role — no Lambda calls the Synthetics control plane.
+    # health: optional. AWS Health DescribeEvents requires Business+ Support
+    # AND a regional Health VPCE. If your account lacks either, the
+    # signal_collector treats aws_health_open as permanently green
+    # (lambdas/signal_collector/aws.py:aws_health_open_events handles the
+    # missing endpoint gracefully). Add "health" back here if you have the
+    # support tier and want the signal active.
   ]
 }
 

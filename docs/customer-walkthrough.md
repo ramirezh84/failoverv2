@@ -105,7 +105,7 @@ Three tiers, by purpose:
 |---|---|---|
 | `outer_nlb_unhealthy` | Outer NLB target health | All targets unhealthy for ≥ dwell window |
 | `cross_region_canary_fail` | Synthetics canary in the **opposite** region probing **this** region's public endpoint | Failure rate ≥ 80% (configurable) |
-| `aws_health_open` | AWS Health API events for this region | Any open issue affecting our services |
+| `aws_health_open` | AWS Health API events for this region (**optional** — requires Business+ Support tier and a Health VPCE; treated as permanently green if unavailable) | Any open issue affecting our services |
 | `vpc_endpoint_errors` | VPC interface endpoint failure count | >0 errors in dwell window |
 
 **Tier 2 — gates *whether* failover is safe (data tier).**
